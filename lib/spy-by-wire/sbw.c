@@ -24,7 +24,7 @@ word ReadData[50];
 //! \return word (value is shifted out via TDO simultaneously)
 static word DR_Shift16(sbw_data_link_t* sbw, word data)
 {
-//    TMSL_TDIL(sbw);
+    //TMSL_TDIL(sbw);
     // JTAG FSM state = Run-Test/Idle
     if (GetTCLK(sbw) & GetSBWDATO(sbw))
     {
@@ -39,6 +39,8 @@ static word DR_Shift16(sbw_data_link_t* sbw, word data)
     // JTAG FSM state = Capture-DR
     TMSL_TDIH(sbw);
     // JTAG FSM state = Shift-DR, Shift in TDI (16-bit)
+    //TMSL_TDIH(sbw);
+
     return(AllShifts(sbw,  F_WORD, data));
     // JTAG FSM state = Run-Test/Idle
 }
@@ -50,6 +52,7 @@ static word DR_Shift16(sbw_data_link_t* sbw, word data)
 //! \return unsigned long TDOvalue (is shifted out via TDO simultaneously)
 static unsigned long DR_Shift20(sbw_data_link_t* sbw, unsigned long address)
 {
+    //TMSL_TDIL(sbw);
     // JTAG FSM state = Run-Test/Idle
     if (GetTCLK(sbw) & GetSBWDATO(sbw))
     {
@@ -64,6 +67,8 @@ static unsigned long DR_Shift20(sbw_data_link_t* sbw, unsigned long address)
     // JTAG FSM state = Capture-DR
     TMSL_TDIH(sbw);
     // JTAG FSM state = Shift-DR, Shift in TDI (16-bit)
+    //TMSL_TDIH(sbw);
+
     return(AllShifts(sbw,  F_ADDR, address));
     // JTAG FSM state = Run-Test/Idle
 }
@@ -76,6 +81,7 @@ static unsigned long DR_Shift20(sbw_data_link_t* sbw, unsigned long address)
 //! \return word TDOword (value shifted out from TDO = JTAG ID)
 static word IR_Shift(sbw_data_link_t* sbw, uint8_t instruction)
 {
+    //TMSL_TDIL(sbw);
     // JTAG FSM state = Run-Test/Idle
     if (GetTCLK(sbw) & GetSBWDATO(sbw))
     {
@@ -140,7 +146,8 @@ static void SetPC_430Xv2(sbw_data_link_t* sbw, unsigned long Addr)
         DR_Shift16(sbw, 0x4303);
         // fix a bug when try to read TLV
         // but, this will shift the PC in two
-        SetTCLK(sbw);
+        ClrTCLK(sbw);
+        ClrTCLK(sbw);
         ClrTCLK(sbw);
         IR_Shift(sbw, IR_ADDR_CAPTURE);
         DR_Shift20(sbw, 0x00000);
@@ -156,8 +163,8 @@ static void SetPC_430Xv2(sbw_data_link_t* sbw, unsigned long Addr)
 word ReadMem_430Xv2(sbw_t* sbw, word Format, unsigned long Addr)
 {
     word TDOword = 0;
-    data_link_delay_ms(sbw->link, 1);
     // Check Init State at the beginning
+    data_link_delay_ms(sbw->link, 1);
     IR_Shift(sbw->link, IR_CNTRL_SIG_CAPTURE);
     if(DR_Shift16(sbw->link, 0) & 0x0301)
     {
@@ -173,7 +180,8 @@ word ReadMem_430Xv2(sbw_t* sbw, word Format, unsigned long Addr)
             DR_Shift16(sbw->link, 0x0511);             // Set byte read
         }
         IR_Shift(sbw->link, IR_ADDR_16BIT);
-        DR_Shift16(sbw->link, Addr);                   // Set address
+        DR_Shift20(sbw->link, Addr);                   // Set address
+
         IR_Shift(sbw->link, IR_DATA_TO_ADDR);
         SetTCLK(sbw->link);
         ClrTCLK(sbw->link);
@@ -262,22 +270,26 @@ void WriteMem_430Xv2(sbw_t* sbw, word Format, unsigned long Addr, word Data)
         {
             DR_Shift16(sbw->link, 0x0510);
         }
+
         IR_Shift(sbw->link, IR_ADDR_16BIT);
-        DR_Shift16(sbw->link, Addr);
+        DR_Shift20(sbw->link, Addr);
 
         SetTCLK(sbw->link);
         // New style: Only apply data during clock high phase
         IR_Shift(sbw->link, IR_DATA_TO_ADDR);
         DR_Shift16(sbw->link, Data);           // Shift in 16 bits
+
         ClrTCLK(sbw->link);
 
         IR_Shift(sbw->link, IR_CNTRL_SIG_16BIT);
         DR_Shift16(sbw->link, 0x0501);
         SetTCLK(sbw->link);
+
         // one or more cycle, so CPU is driving correct MAB
         ClrTCLK(sbw->link);
         SetTCLK(sbw->link);
         // Processor is now again in Init State
+
     }
 }
 
@@ -356,6 +368,9 @@ static word ExecutePOR_430Xv2(sbw_t* sbw)
     // disable Watchdog Timer on target device now by setting the HOLD signal
     // in the WDT_CNTRL register
     WriteMem_430Xv2(sbw, F_WORD, 0x01CC, 0x5A80);
+
+    WriteMem_430Xv2(sbw, F_WORD, 0x06, 0x3FFF);
+    WriteMem_430Xv2(sbw, F_WORD, 0x08, 0x3FFF);
 
     // Check if device is in Full-Emulation-State again and return status
     IR_Shift(sbw->link, IR_CNTRL_SIG_CAPTURE);
@@ -467,7 +482,7 @@ short i_WriteJmbIn32(sbw_t* sbw, unsigned short dataX,unsigned short dataY)
 word DisableMpu_430Xv2(sbw_t* sbw)
 {
     word val;
-    unsigned short newRegisterVal;
+    word newRegisterVal;
 
     if(IR_Shift(sbw->link, IR_CNTRL_SIG_CAPTURE) == JTAG_ID98)
     {
@@ -496,12 +511,31 @@ word DisableWDT_MSP430Xv2(sbw_t* sbw){
     if(IR_Shift(sbw->link, IR_CNTRL_SIG_CAPTURE) == JTAG_ID98)
     {
         newRegisterVal = ReadMem_430Xv2(sbw, F_WORD, FR2433_WDTCTL);
-        newRegisterVal = WDTHOLD; // disable WDT0
-        newRegisterVal |= WDTPW; // write the password
-        // unlock MPU for FR4xx/FR2xx
+        newRegisterVal = WDTPW; // write the password
+        newRegisterVal |= (WDTHOLD); // disable WDT0 and value
+
         WriteMem_430Xv2(sbw, F_WORD, FR2433_WDTCTL, newRegisterVal);
         val = ReadMem_430Xv2(sbw, F_WORD, FR2433_WDTCTL);
         if((val&0xFF) == (newRegisterVal&0xFF))
+        {
+            return STATUS_OK;
+        }
+    }
+    return STATUS_ERROR;
+}
+
+word UnlockBSL_MSP430Xv2(sbw_t* sbw){
+    word val;
+    unsigned short newRegisterVal;
+
+    if(IR_Shift(sbw->link, IR_CNTRL_SIG_CAPTURE) == JTAG_ID98)
+    {
+        newRegisterVal = ReadMem_430Xv2(sbw, F_WORD, MSP430_SYSBSLC);
+        newRegisterVal |= (0x8000); // disable WDT0
+        // unlock MPU for FR4xx/FR2xx
+        WriteMem_430Xv2(sbw, F_WORD, MSP430_SYSBSLC, newRegisterVal);
+        val = ReadMem_430Xv2(sbw, F_WORD, MSP430_SYSBSLC);
+        if((val&0x8000) == 0)
         {
             return STATUS_OK;
         }
@@ -555,6 +589,9 @@ static word GetCoreID (sbw_t* sbw)
         {
             sbw->info.Jtag = (msp430_jtag_id_e)JtagId;
             return(STATUS_OK);
+        }
+        else if (JtagId == JTAG_ID98){
+            break;
         }
     }
     for (i=0 ; i<5 ; i++){
@@ -935,17 +972,17 @@ word WriteFLASH_430Xv2(sbw_t *sbw, unsigned long StartAddr, unsigned long Length
 {
     uint8_t data[256];
 
-    DisableWDT_MSP430Xv2(sbw);
-    DisableMpu_430Xv2(sbw);
+    //DisableWDT_MSP430Xv2(sbw);
+    //DisableMpu_430Xv2(sbw);
 
     if (DataArray != NULL){
         WriteMemQuick_430Xv2(sbw, StartAddr, Length, DataArray);
     }
-    ReadMemQuick_430Xv2(sbw, 0x0140, 128, (uint16_t*)data);
-    if (VerifyPSA_430Xv2(sbw, StartAddr, Length, DataArray) == 0){
-        VerifyPSA_430Xv2(sbw, StartAddr, Length, 0);
-        return STATUS_ERROR;
-    }
+//    ReadMemQuick_430Xv2(sbw, 0x0140, 128, (uint16_t*)data);
+//    if (VerifyPSA_430Xv2(sbw, StartAddr, Length, DataArray) == 0){
+//        VerifyPSA_430Xv2(sbw, StartAddr, Length, 0);
+//        return STATUS_ERROR;
+//    }
 
 
     return STATUS_OK;
@@ -983,6 +1020,27 @@ int8_t sbw_init(sbw_t *obj, sbw_data_link_t *link){
     }
 
     return valid;
+}
+
+word TestRAM_Write (sbw_t *sbw){
+    //uint8_t Data[] = "THIS IS SOME MESSAGE FOR A RAM TEST ON THE DEVICE@!!";
+    uint8_t Check[64];
+    word Data[] = {0x0000, 0x0200, 0x0200, 0x0220, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
+//    word Data[] = {0x2040, 0x0200, 0x0200, 0x02CC, 0xF00F, 0x1111, 0xAAAA, 0xAAAA };
+    word *ar;
+    uint16_t i;
+    for (i=0 ; i<16 ; i++){
+        Check[i] = ReadMem_430Xv2(sbw, F_BYTE, 0xC400 + i);
+    }
+    WriteMemQuick_430Xv2(sbw, 0xC400, 8, Data);
+    for (i=0 ; i<16 ; i++){
+        Check[i] = ReadMem_430Xv2(sbw, F_BYTE, 0xC400 + i);
+    }
+//    if (memcmp(Check, Check, sizeof(Check)/2) == 0){
+//        return STATUS_OK;
+//    }
+
+    return STATUS_ERROR;
 }
 
 
@@ -1047,6 +1105,18 @@ uint32_t sbw_cmd(sbw_t *obj, sbw_cmd_e cmd, void *bVal){
 
         case SBW_ERASE_CHECK:
 
+            break;
+
+        case SBW_TEST_RAM_WRITE:
+            TestRAM_Write(obj);
+            break;
+
+        case SBW_UNLOCK_BSL:
+            UnlockBSL_MSP430Xv2(obj);
+            break;
+
+        case SBW_DISABLE_WDT:
+            DisableWDT_MSP430Xv2(obj);
             break;
 
         default:

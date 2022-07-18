@@ -17,44 +17,46 @@
  * MACROS
  */
 
-#define   lNOPS   { _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); }
-#define   nNOPS   { _NOP(); _NOP(); _NOP(); _NOP();  _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); }
+#define   l1NOPS  { _NOP(); _NOP(); }
+#define   l2NOPS   { l1NOPS; }
+#define   l3NOPS   { l1NOPS; }
 
-#define   SBWDATO   link->fxn.sbwtdioR()
+//#define   SBWDATO   link->fxn.sbwtdioR()
+#define   SBWDATO   0x1
 #define   SBWDATI   link->fxn.sbwtdioR()
 
 //! \brief SBW macro: set TMS signal
-#define   TMSH    {link->fxn.sbwtdioW(HIGH); nNOPS link->fxn.sbwtckW(LOW); nNOPS link->fxn.sbwtckW(HIGH); }
+#define   TMSH    {link->fxn.sbwtdioW(HIGH); l3NOPS link->fxn.sbwtckW(LOW); l3NOPS link->fxn.sbwtckW(HIGH); l2NOPS}
 
 //! \brief SBW macro: clear TMS signal
-#define   TMSL    {link->fxn.sbwtdioW(LOW); nNOPS link->fxn.sbwtckW(LOW); nNOPS link->fxn.sbwtckW(HIGH); }
+#define   TMSL    {link->fxn.sbwtdioW(LOW); l3NOPS link->fxn.sbwtckW(LOW); l3NOPS link->fxn.sbwtckW(HIGH); l2NOPS}
 
 //! \brief SBW macro: clear TMS signal and immediately set it high again in
 //! the SBWTCK low phase to enter the TDI slot with a high signal
 //! \details Only used to clock TCLK (=TDI for SBW) in Run-Test/IDLE mode of
 //! the JTAG FSM
-#define   TMSLDH  {link->fxn.sbwtdioW(LOW); nNOPS link->fxn.sbwtckW(LOW); nNOPS link->fxn.sbwtdioW(HIGH); link->fxn.sbwtckW(HIGH);}
+#define   TMSLDH  {link->fxn.sbwtdioW(LOW); l3NOPS link->fxn.sbwtckW(LOW); l3NOPS link->fxn.sbwtdioW(HIGH); link->fxn.sbwtckW(HIGH); l2NOPS}
 
 //! \brief SBW macro: Set TDI = 1
-#define   TDIH    {link->fxn.sbwtdioW(HIGH); nNOPS link->fxn.sbwtckW(LOW); nNOPS link->fxn.sbwtckW(HIGH);}
+#define   TDIH    {link->fxn.sbwtdioW(HIGH); l3NOPS link->fxn.sbwtckW(LOW); l3NOPS link->fxn.sbwtckW(HIGH); l2NOPS}
 
 //! \brief SBW macro: clear TDI signal
-#define   TDIL    {link->fxn.sbwtdioW(LOW); nNOPS link->fxn.sbwtckW(LOW); nNOPS link->fxn.sbwtckW(HIGH);}
+#define   TDIL    {link->fxn.sbwtdioW(LOW); l3NOPS link->fxn.sbwtckW(LOW); l3NOPS link->fxn.sbwtckW(HIGH); l2NOPS}
 
 //! \brief SBW macro: TDO cycle without reading TDO
-#define   TDOsbw  {link->fxn.sbwtdioSet(INPUT); nNOPS link->fxn.sbwtckW(LOW); nNOPS link->fxn.sbwtckW(HIGH); link->fxn.sbwtdioSet(OUTPUT);}
+#define   TDOsbw  {link->fxn.sbwtdioSet(INPUT); l3NOPS link->fxn.sbwtckW(LOW); l2NOPS link->fxn.sbwtckW(HIGH); link->fxn.sbwtdioSet(OUTPUT); l2NOPS}
 
 //! \brief SBW macro: TDO cycle with TDO read
-#define   TDO_RD  {link->fxn.sbwtdioSet(INPUT); lNOPS link->fxn.sbwtckW(LOW); nNOPS tdo_bit = link->fxn.sbwtdioR(); link->fxn.sbwtckW(HIGH); link->fxn.sbwtdioSet(OUTPUT);}
+#define   TDO_RD  {link->fxn.sbwtdioSet(INPUT); link->fxn.sbwtckW(LOW); l3NOPS tdo_bit = link->fxn.sbwtdioR(); link->fxn.sbwtckW(HIGH); link->fxn.sbwtdioSet(OUTPUT); l2NOPS}
 
 //! \brief SBW macro: set TCK signal
-#define   SetSBWTCK(link)     {link->fxn.sbwtckW(HIGH); lNOPS;}
+#define   SetSBWTCK(link)     {link->fxn.sbwtckW(HIGH); }
 //! \brief SBW macro: clear TCK signal
-#define   ClrSBWTCK(link)     {link->fxn.sbwtckW(LOW); lNOPS;}
+#define   ClrSBWTCK(link)     {link->fxn.sbwtckW(LOW); }
 //! \brief SBW macro: set TDIO signal
-#define   SetSBWTDIO(link)    {link->fxn.sbwtdioW(HIGH); lNOPS;}
+#define   SetSBWTDIO(link)    {link->fxn.sbwtdioW(HIGH); }
 //! \brief SBW macro: clear TDIO signal
-#define   ClrSBWTDIO(link)    {link->fxn.sbwtdioW(LOW); lNOPS;}
+#define   ClrSBWTDIO(link)    {link->fxn.sbwtdioW(LOW); }
 
 
 
@@ -140,7 +142,7 @@ void ClrTCLK(sbw_data_link_t* link)
     ClrSBWTDIO(link);
 
     TDIL TDOsbw    //ExitTCLK
-    TCLK_saved = (!SBWDATO);
+    TCLK_saved = (~SBWDATO);
 }
 
 //----------------------------------------------------------------------------
@@ -181,46 +183,12 @@ void TCLKstrobes(sbw_data_link_t* link, word Amount)
     for (i = Amount; i > 0; i--)
     {
         SetSBWTCK(link);
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
+        l3NOPS;
+        l3NOPS;
+        l3NOPS;
+        l3NOPS;
         ClrSBWTCK(link);
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
-        _NOP();
+        l3NOPS;
     }
 }
 
@@ -283,7 +251,6 @@ unsigned long AllShifts(sbw_data_link_t* link, word Format, uint32_t Data)
    {
      TDOword = ((TDOword << 16) + (TDOword >> 4)) & 0x000FFFFF;
    }
-
    return(TDOword);
 }
 
@@ -291,18 +258,21 @@ uint8_t GetTDO(sbw_data_link_t* link){
     if (link != NULL){
         return tdo_bit;
     }
+    return 0;
 }
 
 uint8_t GetTCLK(sbw_data_link_t* link){
     if (link != NULL){
         return TCLK_saved;
     }
+    return 0;
 }
 
 uint8_t GetSBWDATO(sbw_data_link_t* link){
     if (link != NULL){
         return SBWDATO;
     }
+    return 0;
 }
 
 /**

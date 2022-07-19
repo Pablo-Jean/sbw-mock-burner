@@ -18,8 +18,8 @@
  */
 
 #define   l1NOPS  { _NOP(); _NOP(); }
-#define   l2NOPS   { l1NOPS; }
-#define   l3NOPS   { l1NOPS; }
+#define   l2NOPS   { l1NOPS; l1NOPS; l1NOPS; l1NOPS; }
+#define   l3NOPS   { l2NOPS; }
 
 //#define   SBWDATO   link->fxn.sbwtdioR()
 #define   SBWDATO   0x1

@@ -39,7 +39,7 @@ typedef enum{
     MSP430FR2633 = 0x823C,
     MSP430FR2675 = 0x8329,
     MSP430FR2676 = 0x8328,
-    MSP430FR4131 =  0x81F2,
+    MSP430FR4131 = 0x81F2,
     MSP430FR4132 = 0x81F1,
     MSP430FR4133 = 0x81F0,
     MSP430FR5041 = 0x830F,
@@ -145,5 +145,26 @@ typedef enum{
     MSP430_FUSE_OK,
     MSP430_FUSE_BLOWN
 }msp430_fuse_e;
+
+typedef struct{
+    uint32_t start;
+    uint32_t size;
+}msp430_mem_t;
+
+typedef struct{
+    msp430_ids_e ID;
+    msp430_mem_t ram;
+    msp430_mem_t main;
+    msp430_mem_t info;
+    msp430_mem_t peripherals;
+}msp430_model_address_t;
+
+
+/*
+ * Externs
+ */
+
+extern msp430_model_address_t msp430_model_address[2];
+
 
 #endif /* LIB_SPY_BY_WIRE_MSP430_DEV_CODES_H_ */

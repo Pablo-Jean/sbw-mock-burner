@@ -10,12 +10,11 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "msp430_dev_codes.h"
-#include "framFunclets.h"
 
 #include "data_link.h"
-
 
 /**
  * Macros
@@ -142,7 +141,9 @@ typedef enum{
     SBW_ERASE_CHECK,
     SBW_TEST_RAM_WRITE,
     SBW_UNLOCK_BSL,
-    SBW_DISABLE_WDT
+    SBW_DISABLE_WDT,
+    SBW_JTAG_PASSWORD_WRITE,
+    SBW_JTAG_PASSWORD_REMOVE
 }sbw_cmd_e;
 
 typedef enum{
@@ -241,6 +242,7 @@ typedef struct{
 typedef struct{
     sbw_data_link_t *link;
     tlv_t TLV;
+    msp430_model_address_t *memoryMap;
     struct{
         msp430_ids_e Device;
         msp430_jtag_id_e Jtag;

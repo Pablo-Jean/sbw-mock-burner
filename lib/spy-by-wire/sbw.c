@@ -116,8 +116,7 @@ static void SetPC_430Xv2(sbw_data_link_t* sbw, unsigned long Addr)
 
     // to fix a bug to read the TLV, the address will shift in two
     // so, just return the desired address in two
-    if (Addr >= 2)
-        Addr -= 2;
+
     Mova  = 0x0080;
     Mova += (unsigned short)((Addr>>8) & 0x00000F00);
     Pc_l  = (unsigned short)((Addr & 0xFFFF));
@@ -201,7 +200,7 @@ word ReadMem_430Xv2(sbw_t* sbw, word Format, unsigned long Addr)
 //! \param[in] word StartAddr (Start address of memory to be read)
 //! \param[in] word Length (Number of words to be read)
 //! \param[out] word *DataArray (Pointer to array for the data)
-void ReadMemQuick_430Xv2(sbw_t* sbw, unsigned long StartAddr, unsigned long Length, word *DataArray)
+word ReadMemQuick_430Xv2(sbw_t* sbw, unsigned long StartAddr, unsigned long Length, word *DataArray)
 {
     unsigned long i, lPc = 0;
 
@@ -230,6 +229,8 @@ void ReadMemQuick_430Xv2(sbw_t* sbw, unsigned long StartAddr, unsigned long Leng
         SetPC_430Xv2(sbw->link, lPc);
     }
     SetTCLK(sbw->link);
+
+    return STATUS_OK;
 }
 
 //----------------------------------------------------------------------------
@@ -680,7 +681,7 @@ static word SyncJtag_AssertPor (sbw_t* sbw)
     return(STATUS_OK);
 }
 
-void HaltCPU_430Xv2(sbw_t* sbw){
+word HaltCPU_430Xv2(sbw_t* sbw){
     // "JMP $" instruction to keep CPU from changing the state
     IR_Shift(sbw->link, IR_DATA_16BIT);
     DR_Shift16(sbw->link, 0x3FFF);
@@ -691,14 +692,18 @@ void HaltCPU_430Xv2(sbw_t* sbw){
     DR_Shift16(sbw->link, 0x2409);
     SetTCLK(sbw->link);
     sbw->info.Cpu = CPU_HALT;
+
+    return STATUS_OK;
 }
 
-void ReleaseCPU_430Xv2(sbw_t* sbw){
+word ReleaseCPU_430Xv2(sbw_t* sbw){
     ClrTCLK(sbw->link);
     IR_Shift(sbw->link, IR_CNTRL_SIG_16BIT);
     DR_Shift16(sbw->link, 0x2401);
     IR_Shift(sbw->link, IR_ADDR_CAPTURE);
     SetTCLK(sbw->link);
+
+    return STATUS_OK;
 }
 
 
@@ -770,7 +775,7 @@ word VerifyPSA_430Xv2(sbw_t *sbw, unsigned long StartAddr, unsigned long Length,
 //! \brief Function to release the target device from JTAG control
 //! \param[in] word Addr (0xFFFE: Perform Reset, means Load Reset Vector into
 //! PC, otherwise: Load Addr into PC)
-void ReleaseDevice_430Xv2(sbw_t* sbw, unsigned long Addr)
+word ReleaseDevice_430Xv2(sbw_t* sbw, unsigned long Addr)
 {
     switch(Addr)
     {
@@ -803,6 +808,8 @@ void ReleaseDevice_430Xv2(sbw_t* sbw, unsigned long Addr)
 
     }
     sbw->info.Cpu = CPU_RELEASED;
+
+    return STATUS_OK;
 }
 
 
@@ -864,63 +871,11 @@ word EraseFRAMViaBootCode_430Xv2(sbw_t* sbw, word mailBoxMode, word data1, word 
 //! consider using EraseFRAMViaBootCode_430Xv2 instead.
 //! \param[in] word StartAddr (start address for the erase)
 //! \param[in] word Length (length of the memory section in WORDS)
-void EraseFRAM_430Xv2(sbw_t *sbw, word EraseMode, unsigned long EraseAddr)
+word EraseFRAM_430Xv2(sbw_t *sbw, word EraseMode, unsigned long EraseAddr)
 {
-    static unsigned short SegmentInfoAKey5xx = 0xA540;
-    word check[200], i;
-    word loadAddr  = RAM_START_ADDRESS;           // RAM start address specified in config header file
-    word startAddr = loadAddr + FramErase_o[0];   // start address of the program in target RAM
-
-    FramErase_o[2] = (unsigned short)(EraseAddr);     // set dummy write address
-    FramErase_o[3] = (unsigned short)(EraseAddr>>16);
-    FramErase_o[4] = EraseMode;                       // set erase mode
-    FramErase_o[5] = SegmentInfoAKey5xx;               // FCTL3: lock/unlock INFO Segment A
-
-    //DisableMpu_430Xv2(sbw);
-
     EraseFRAMViaBootCode_430Xv2(sbw, MAIL_BOX_32BIT, STOP_DEVICE, USER_CODE_ERASE);
 
-//    check[0] = 0x0;
-//    WriteMem_430Xv2(sbw, F_WORD, 0x130, check[0]);
-//    check[0] = ReadMem_430Xv2(sbw, F_WORD, 0x130);
-//
-//    WriteMem_430Xv2(sbw, F_BYTE, 0x204, 0x3);
-//    WriteMem_430Xv2(sbw, F_BYTE, 0x202, 0x3);
-//
-//    ReadMemQuick_430Xv2(sbw, 0x204, 1, (word*)check);
-//    ReadMemQuick_430Xv2(sbw, 0x202, 1, (word*)&check[1]);
-//
-//    WriteMemQuick_430Xv2(sbw, loadAddr, FramErase_o_length/2, (word*)FramErase_o);
-//    for (i=0 ; i<FramErase_o_length/2 ; i++){
-//        check[i]= ReadMem_430Xv2(sbw, F_WORD, loadAddr + (i*2));
-//    }
-//    ReleaseDevice_430Xv2(sbw, startAddr);
-//    {
-//        unsigned long Jmb = 0;
-//        unsigned long Timeout = 0;
-//
-//        do
-//        {
-//            Jmb = 0;
-//            Jmb = i_ReadJmbOut(sbw);
-//            Timeout++;
-//        }
-//        // original timeout: 3000
-//        while(Jmb != 0xCAFEBABE && Timeout < 3000);
-//    }
-//
-//    SyncJtag_AssertPor(sbw);
-//
-//    // clear RAM here - init with JMP $
-//    {
-//        word i;
-//
-//        for (i = 0; i < FramErase_o_length/2; i++)
-//        {
-//            WriteMem_430Xv2(sbw, F_WORD, loadAddr, 0x3fff);
-//            loadAddr += 2;
-//        }
-//    }
+    return STATUS_OK;
 }
 
 word EraseCheck_430Xv2(sbw_t *sbw, uint32_t StartAddr, uint32_t Length){
@@ -931,6 +886,19 @@ word EraseCheck_430Xv2(sbw_t *sbw, uint32_t StartAddr, uint32_t Length){
 /**
  * Abstration for Publics
  */
+
+msp430_model_address_t *getDeviceMemOrganization(msp430_ids_e id){
+    uint32_t qtd, i;
+
+    qtd = sizeof(msp430_model_address)/sizeof(msp430_model_address_t);
+    for (i=0 ; i<qtd ; i++){
+        if (id == msp430_model_address[i].ID){
+            return &msp430_model_address[i];
+        }
+    }
+
+    return NULL;
+}
 
 word GetDevice_430Xv2(sbw_t *obj){
     uint32_t pDeviceID;
@@ -957,6 +925,7 @@ word GetDevice_430Xv2(sbw_t *obj){
 
     ReadMemQuick_430Xv2(obj, pDeviceID, sizeof(tlv_t)/sizeof(uint16_t), obj->TLV._raw);
     obj->info.Device = (msp430_ids_e)obj->TLV.information.deviceID;
+    obj->memoryMap = getDeviceMemOrganization(obj->info.Device);
 
     return STATUS_OK;
 }
@@ -970,22 +939,35 @@ word GetDevice_430Xv2(sbw_t *obj){
 //! \param[in] word *DataArray (Pointer to array with the data)
 word WriteFLASH_430Xv2(sbw_t *sbw, unsigned long StartAddr, unsigned long Length, word *DataArray)
 {
-    uint8_t data[256];
-
-    //DisableWDT_MSP430Xv2(sbw);
-    //DisableMpu_430Xv2(sbw);
+    DisableWDT_MSP430Xv2(sbw);
+    DisableMpu_430Xv2(sbw);
 
     if (DataArray != NULL){
         WriteMemQuick_430Xv2(sbw, StartAddr, Length, DataArray);
     }
-//    ReadMemQuick_430Xv2(sbw, 0x0140, 128, (uint16_t*)data);
-//    if (VerifyPSA_430Xv2(sbw, StartAddr, Length, DataArray) == 0){
-//        VerifyPSA_430Xv2(sbw, StartAddr, Length, 0);
-//        return STATUS_ERROR;
-//    }
 
 
     return STATUS_OK;
+}
+
+word WriteFLASHwChk_430Xv2(sbw_t *sbw, unsigned long StartAddr, unsigned long Length, word *DataArray)
+{
+    word *chkData;
+    word ret;
+
+    ret = STATUS_ERROR;
+    if (DataArray != NULL){
+        WriteFLASH_430Xv2(sbw, StartAddr, Length, DataArray);
+    }
+    chkData = malloc(Length);
+    ReadMemQuick_430Xv2(sbw, StartAddr, Length, chkData);
+    if (memcmp(DataArray, chkData, Length) == 0){
+        ret = STATUS_OK;
+    }
+    free(chkData);
+
+
+    return ret;
 }
 
 
@@ -1023,84 +1005,86 @@ int8_t sbw_init(sbw_t *obj, sbw_data_link_t *link){
 }
 
 word TestRAM_Write (sbw_t *sbw){
-    //uint8_t Data[] = "THIS IS SOME MESSAGE FOR A RAM TEST ON THE DEVICE@!!";
+    uint8_t Data[] = "THIS IS SOME MESSAGE FOR A RAM TEST ON THE DEVICE@!!";
     uint8_t Check[64];
-    word Data[] = {0x0000, 0x0200, 0x0200, 0x0220, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
-//    word Data[] = {0x2040, 0x0200, 0x0200, 0x02CC, 0xF00F, 0x1111, 0xAAAA, 0xAAAA };
-    word *ar;
-    uint16_t i;
-    for (i=0 ; i<16 ; i++){
-        Check[i] = ReadMem_430Xv2(sbw, F_BYTE, 0xC400 + i);
+
+    WriteMemQuick_430Xv2(sbw, sbw->memoryMap->ram.start, sizeof(Data)/2, (word*)Data);
+    ReadMemQuick_430Xv2(sbw, sbw->memoryMap->ram.start, sizeof(Data)/2, (word*)Check);
+    if (memcmp(Check, Data, sizeof(Data)/2) == 0){
+        return STATUS_OK;
     }
-    WriteMemQuick_430Xv2(sbw, 0xC400, 8, Data);
-    for (i=0 ; i<16 ; i++){
-        Check[i] = ReadMem_430Xv2(sbw, F_BYTE, 0xC400 + i);
-    }
-//    if (memcmp(Check, Check, sizeof(Check)/2) == 0){
-//        return STATUS_OK;
-//    }
 
     return STATUS_ERROR;
 }
 
+word ProgramLockKey(sbw_t *sbw){
+    word LockKey[2] = { 0x5555, 0x5555 };
+
+    // write JTAG lock key
+    WriteMemQuick_430Xv2(sbw, 0xff80, 2, LockKey);
+
+    // now perform a BOR via JTAG - we loose control of the device then...
+    IR_Shift(sbw->link, IR_TEST_REG);
+    DR_Shift16(sbw->link, 0x0200);
+    data_link_delay_ms(sbw->link, 5);     // wait some time until Bootcode is executed
+
+    // -> get it under JTAG control again
+    // and return result of "is fuse blown?"
+    return(GetDevice_430Xv2(sbw) == STATUS_FUSEBLOWN);
+}
+
 
 uint32_t sbw_cmd(sbw_t *obj, sbw_cmd_e cmd, void *bVal){
-    word jTagId;
-    uint8_t retry;
+    word ret;
 
+    ret = STATUS_ERROR;
     if (obj != NULL){
 
         switch (cmd){
         case SBW_GET_DEVICE_ID:
-            return (uint32_t)GetDevice_430Xv2(obj);
+            ret = (uint32_t)GetDevice_430Xv2(obj);
+            break;
 
         case SBW_HALT_DEVICE:
-            HaltCPU_430Xv2(obj);
+            ret = HaltCPU_430Xv2(obj);
             break;
 
         case SBW_RELEASE_DEVICE:
-            ReleaseDevice_430Xv2(obj, V_RESET);
+            ret = ReleaseDevice_430Xv2(obj, V_RESET);
             break;
 
         case SBW_CHECK_ACCESS:
-//            DisableMpu_430Xv2(obj);
-            EraseFRAM_430Xv2(obj, ERASE_SEGMENT, MAIN_START_ADDRESS);
-            EraseCheck_430Xv2(obj, 0xC400, 100);
-            WriteFLASH_430Xv2(obj, MAIN_START_ADDRESS, 50, WriteData);
 
             break;
 
         case SBW_ERASE_MAIN:
-            EraseFRAM_430Xv2(obj, ERASE_MAIN, MAIN_START_ADDRESS);
+            ret = EraseFRAM_430Xv2(obj, ERASE_MAIN, MAIN_START_ADDRESS);
             break;
 
         case SBW_WRITE_DATA:
             if (bVal != NULL){
                 obj->buf.wr = bVal;
-
-                WriteFLASH_430Xv2(obj, obj->buf.wr->stAddr, obj->buf.wr->len, obj->buf.wr->data);
+                ret = WriteFLASH_430Xv2(obj, obj->buf.wr->stAddr, obj->buf.wr->len, obj->buf.wr->data);
             }
             break;
 
         case SBW_READ_DATA:
             if (bVal != NULL){
                 obj->buf.rd = bVal;
-//                SyncJtag_AssertPor(obj);
-//                ReadMemQuick_430Xv2(obj, obj->buf.rd->stAddr, obj->buf.rd->len, obj->buf.rd->data);
+                ret = ReadMemQuick_430Xv2(obj, obj->buf.rd->stAddr, obj->buf.rd->len, obj->buf.rd->data);
             }
             break;
 
         case SBW_WRITE_WITH_CHECK:
             if (bVal != NULL){
-//                obj->buf.rd = bVal;
-//                HaltCPU_430Xv2(obj);
-//                ReadMemQuick_430Xv2(obj, obj->buf.rd->stAddr, obj->buf.rd->len, obj->buf.rd->data);
+                obj->buf.wr = bVal;
+                ret = WriteFLASHwChk_430Xv2(obj, obj->buf.wr->stAddr, obj->buf.wr->len, obj->buf.wr->data);
             }
 
             break;
 
         case SBW_DISABLE_MPU:
-            DisableMpu_430Xv2(obj);
+            ret = DisableMpu_430Xv2(obj);
             break;
 
         case SBW_ERASE_CHECK:
@@ -1108,15 +1092,23 @@ uint32_t sbw_cmd(sbw_t *obj, sbw_cmd_e cmd, void *bVal){
             break;
 
         case SBW_TEST_RAM_WRITE:
-            TestRAM_Write(obj);
+            ret = TestRAM_Write(obj);
             break;
 
         case SBW_UNLOCK_BSL:
-            UnlockBSL_MSP430Xv2(obj);
+            ret = UnlockBSL_MSP430Xv2(obj);
             break;
 
         case SBW_DISABLE_WDT:
-            DisableWDT_MSP430Xv2(obj);
+            ret = DisableWDT_MSP430Xv2(obj);
+            break;
+
+        case SBW_JTAG_PASSWORD_WRITE:
+            ProgramLockKey(obj);
+            break;
+
+        case SBW_JTAG_PASSWORD_REMOVE:
+            EraseFRAMViaBootCode_430Xv2(obj, MAIL_BOX_32BIT, STOP_DEVICE, USER_CODE_ERASE);
             break;
 
         default:
@@ -1125,6 +1117,6 @@ uint32_t sbw_cmd(sbw_t *obj, sbw_cmd_e cmd, void *bVal){
         }
     }
 
-    return STATUS_OK;
+    return ret;
 }
 

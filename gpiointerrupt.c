@@ -49,11 +49,13 @@
 #include "ti/devices/cc13x2_cc26x2/driverlib/gpio.h"
 
 #include "sbw.h"
+#include "cjtag.h"
 
 // GPIOS
 
-#define dioSBWTDIO  18
-#define dioSBWSCK   19
+#define dioTCK      17
+#define dioTMS      18
+#define dioRESET    16
 
 /**
  * Firmware test
@@ -117,33 +119,40 @@ void gpioButtonFxn1(uint_least8_t index)
 
 void __sbw_set_tdio_dir(uint8_t InO){
     if (InO == 0){
-        GPIO_setOutputEnableDio(dioSBWTDIO, GPIO_OUTPUT_ENABLE);
+        GPIO_setOutputEnableDio(dioTMS, GPIO_OUTPUT_ENABLE);
     }
     else{
         //hGpio_changeToInput(0, SBWTDIO, hGPIO_INTERRUPT_OFF);
-        GPIO_setOutputEnableDio(dioSBWTDIO, GPIO_OUTPUT_DISABLE);
+        GPIO_setOutputEnableDio(dioTMS, GPIO_OUTPUT_DISABLE);
     }
 }
 
 void __sbw_set_tdio(uint8_t state){
     //hGpio_write(0, SBWTDIO, (hGPIO_PIN_STATE_e)state);
     if (state)
-        GPIO_setDio(dioSBWTDIO);
+        GPIO_setDio(dioTMS);
     else
-        GPIO_clearDio(dioSBWTDIO);
+        GPIO_clearDio(dioTMS);
 }
 
 uint8_t __sbw_read_tdio(){
-    lS = hGpio_read(0, SBWTDIO);
+    lS = hGpio_read(0, dioTMS);
     return lS;
 }
 
 void __sbw_set_tck(uint8_t state){
     //hGpio_write(0, SBWTCK, (hGPIO_PIN_STATE_e)state);
     if (state)
-        GPIO_setDio(dioSBWSCK);
+        GPIO_setDio(dioTCK);
     else
-        GPIO_clearDio(dioSBWSCK);
+        GPIO_clearDio(dioTCK);
+}
+
+void __sbw_set_reset(uint8_t state){
+    if (state)
+        GPIO_setDio(dioRESET);
+    else
+        GPIO_clearDio(dioRESET);
 }
 
 void __delay_us(uint32_t us){
@@ -200,6 +209,16 @@ sbw_data_link_t data_link = {
     }
 };
 
+cjtag_t cjtag = {
+     .pinFxn = {
+        .tmsSetDir = __sbw_set_tdio_dir,
+        .tmsSetIO = __sbw_set_tdio,
+        .tmsGet = __sbw_read_tdio,
+        .tckSetIO = __sbw_set_tck,
+        .resetSetIO = __sbw_set_reset
+     }
+};
+
 sbw_t SBW;
 uint32_t ret;
 
@@ -210,6 +229,7 @@ void *mainThread(void *arg0)
 {
     uint8_t instruction = 0;
     uint16_t data;
+    uint64_t tdo, tdo1, tdo2;
     word ret;
     Timer_Params params;
 
@@ -244,11 +264,10 @@ void *mainThread(void *arg0)
         GPIO_enableInt(CONFIG_GPIO_BUTTON_1);
     }
 
-    GPIO_setOutputEnableDio(dioSBWTDIO, GPIO_OUTPUT_ENABLE);
-    GPIO_setOutputEnableDio(dioSBWSCK, GPIO_OUTPUT_ENABLE);
-    GPIO_setDio(dioSBWTDIO);
-    GPIO_setDio(dioSBWSCK);
-
+    GPIO_clearDio(dioRESET);
+    GPIO_setDio(dioTCK);
+    GPIO_setDio(dioTMS);
+    /*
     sbw_init(&SBW, &data_link);
 
     if (sbw_cmd(&SBW, SBW_GET_DEVICE_ID, NULL) == STATUS_FUSEBLOWN){
@@ -284,16 +303,32 @@ void *mainThread(void *arg0)
 //    sbw_cmd(&SBW, SBW_JTAG_PASSWORD_WRITE, NULL);
 
     sbw_cmd(&SBW, SBW_RELEASE_DEVICE, NULL);
+    */
 
+    GPIO_write(CONFIG_GPIO_LED_1, CONFIG_GPIO_LED_ON);
+
+    cjtag_init(&cjtag);
+
+    tdo = cjtag_ir_shift(&cjtag, 0x3f, 6, 1);
+    tdo1 = cjtag_dr_shift(&cjtag, 0x0, 32, 1);
+
+    tdo = cjtag_ir_shift(&cjtag, 0x7, 6, 1);
+    tdo = cjtag_dr_shift(&cjtag, 0x6, 8, 1);
+
+    tdo  = cjtag_ir_shift(&cjtag, 0x3f, 6, 1);
+    tdo1 = cjtag_dr_shift(&cjtag, 0x7777, 16, 1);
+
+    tdo  = cjtag_ir_shift(&cjtag, 0x3f, 6, 1);
+    tdo2 = cjtag_dr_shift(&cjtag, 0x1, 16, 1);
+    GPIO_write(CONFIG_GPIO_LED_1, CONFIG_GPIO_LED_OFF);
 
     while (1){
-        //GPIO_write(CONFIG_GPIO_LED_0, CONFIG_GPIO_LED_ON);
+        GPIO_write(CONFIG_GPIO_LED_0, CONFIG_GPIO_LED_OFF);
         __delay_ms(500);
 
-        //GPIO_write(CONFIG_GPIO_LED_0, CONFIG_GPIO_LED_OFF);
+        GPIO_write(CONFIG_GPIO_LED_0, CONFIG_GPIO_LED_ON);
         __delay_ms(500);
     }
-
 
     return (NULL);
 }

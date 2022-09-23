@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "../common/typedefs.h"
+
 /**
  * Macros
  */
@@ -84,17 +86,6 @@ typedef enum{
  * typedefs
  */
 
-// 1 for Input, 0 for Output
-typedef void(*GpioSetIO)(uint8_t InO);
-// 0 for LOW, 1 for HIGH
-typedef void(*GpioOut)(uint8_t state);
-// 0 fir LOW, 1 for HIGH
-typedef uint8_t(*GpioIn)(void);
-
-typedef void(*DelayUs)(uint32_t us);
-typedef void(*DelayMs)(uint32_t ms);
-
-typedef uint16_t word;
 /**
  * Structs and Unions
  */

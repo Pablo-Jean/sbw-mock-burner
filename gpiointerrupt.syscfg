@@ -1,8 +1,8 @@
 /**
  * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
  * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
- * @cliArgs --board "/ti/boards/CC26X2R1_LAUNCHXL" --rtos "tirtos7" --product "simplelink_cc13xx_cc26xx_sdk@6.10.00.29"
- * @versions {"tool":"1.12.0+2406"}
+ * @cliArgs --board "/ti/boards/CC26X2R1_LAUNCHXL" --rtos "tirtos7" --product "simplelink_cc13xx_cc26xx_sdk@5.40.00.40"
+ * @versions {"tool":"1.13.0+2553"}
  */
 
 /**
@@ -12,6 +12,10 @@ const GPIO        = scripting.addModule("/ti/drivers/GPIO");
 const GPIO1       = GPIO.addInstance();
 const GPIO2       = GPIO.addInstance();
 const GPIO3       = GPIO.addInstance();
+const GPIO4       = GPIO.addInstance();
+const GPIO5       = GPIO.addInstance();
+const GPIO6       = GPIO.addInstance();
+const GPIO7       = GPIO.addInstance();
 const Power       = scripting.addModule("/ti/drivers/Power");
 const Timer       = scripting.addModule("/ti/drivers/Timer", {}, false);
 const Timer1      = Timer.addInstance();
@@ -35,8 +39,24 @@ GPIO1.$name     = "CONFIG_GPIO_BUTTON_0";
 GPIO2.$hardware = system.deviceData.board.components["BTN-2"];
 GPIO2.$name     = "CONFIG_GPIO_BUTTON_1";
 
-GPIO3.$name           = "SBWTDIO";
+GPIO3.$name           = "TMS";
+GPIO3.mode            = "Output";
 GPIO3.gpioPin.$assign = "boosterpack.36";
+
+GPIO4.$name           = "TCK";
+GPIO4.mode            = "Output";
+GPIO4.gpioPin.$assign = "boosterpack.31";
+
+GPIO5.$name              = "RESET";
+GPIO5.mode               = "Output";
+GPIO5.initialOutputState = "High";
+GPIO5.gpioPin.$assign    = "boosterpack.32";
+
+GPIO6.$hardware = system.deviceData.board.components.LED_RED;
+GPIO6.$name     = "CONFIG_GPIO_LED_0";
+
+GPIO7.$hardware = system.deviceData.board.components.LED_GREEN;
+GPIO7.$name     = "CONFIG_GPIO_LED_1";
 
 const CCFG              = scripting.addModule("/ti/devices/CCFG", {}, false);
 CCFG.ccfgTemplate.$name = "ti_devices_CCFG_CCFGCC26XXTemplate0";
@@ -84,5 +104,7 @@ System.supportModule   = "SysCallback";
  */
 GPIO1.gpioPin.$suggestSolution              = "boosterpack.13";
 GPIO2.gpioPin.$suggestSolution              = "boosterpack.12";
+GPIO6.gpioPin.$suggestSolution              = "boosterpack.39";
+GPIO7.gpioPin.$suggestSolution              = "boosterpack.40";
 Timer1.timerInstance.timer.$suggestSolution = "GPTM0";
 Timer_1.rtc.$suggestSolution                = "RTC0";

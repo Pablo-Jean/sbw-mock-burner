@@ -25,8 +25,8 @@
 								<listOptionValue builtIn="false" value="CCS_MBS_VERSION=6.1.3"/>
 								<listOptionValue builtIn="false" value="RUNTIME_SUPPORT_LIBRARY="/>
 								<listOptionValue builtIn="false" value="OUTPUT_TYPE=executable"/>
-								<listOptionValue builtIn="false" value="PRODUCTS=com.ti.SIMPLELINK_CC13XX_CC26XX_SDK:6.10.0.29;sysconfig:1.12.0;"/>
-								<listOptionValue builtIn="false" value="PRODUCT_MACRO_IMPORTS={&quot;com.ti.SIMPLELINK_CC13XX_CC26XX_SDK&quot;:[&quot;${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_INCLUDE_PATH}&quot;,&quot;${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_LIBRARY_PATH}&quot;,&quot;${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_LIBRARIES}&quot;,&quot;${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_SYMBOLS}&quot;,&quot;${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_SYSCONFIG_MANIFEST}&quot;],&quot;sysconfig&quot;:[&quot;${SYSCONFIG_TOOL_INCLUDE_PATH}&quot;,&quot;${SYSCONFIG_TOOL_LIBRARY_PATH}&quot;,&quot;${SYSCONFIG_TOOL_LIBRARIES}&quot;,&quot;${SYSCONFIG_TOOL_SYMBOLS}&quot;,&quot;${SYSCONFIG_TOOL_SYSCONFIG_MANIFEST}&quot;]}"/>
+								<listOptionValue builtIn="false" value="PRODUCTS=com.ti.SIMPLELINK_CC13XX_CC26XX_SDK:5.40.0.40;sysconfig:1.13.0;"/>
+								<listOptionValue builtIn="false" value="PRODUCT_MACRO_IMPORTS={&quot;sysconfig&quot;:[&quot;${SYSCONFIG_TOOL_INCLUDE_PATH}&quot;,&quot;${SYSCONFIG_TOOL_LIBRARY_PATH}&quot;,&quot;${SYSCONFIG_TOOL_LIBRARIES}&quot;,&quot;${SYSCONFIG_TOOL_SYMBOLS}&quot;,&quot;${SYSCONFIG_TOOL_SYSCONFIG_MANIFEST}&quot;],&quot;com.ti.SIMPLELINK_CC13XX_CC26XX_SDK&quot;:[&quot;${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_INCLUDE_PATH}&quot;,&quot;${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_LIBRARY_PATH}&quot;,&quot;${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_LIBRARIES}&quot;,&quot;${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_SYMBOLS}&quot;,&quot;${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_SYSCONFIG_MANIFEST}&quot;]}"/>
 							</option>
 							<option id="com.ti.ccstudio.buildDefinitions.core.OPT_CODEGEN_VERSION.525774757" name="Compiler version" superClass="com.ti.ccstudio.buildDefinitions.core.OPT_CODEGEN_VERSION" value="20.2.6.LTS" valueType="string"/>
 							<targetPlatform id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.targetPlatformDebug.757097522" name="Platform" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.exe.targetPlatformDebug"/>
@@ -42,9 +42,10 @@
 								<option id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.LITTLE_ENDIAN.1239578453" name="Little endian code [See 'General' page to edit] (--little_endian, -me)" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.LITTLE_ENDIAN" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.INCLUDE_PATH.896768023" name="Add dir to #include search path (--include_path, -I)" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.INCLUDE_PATH" valueType="includePath">
 									<listOptionValue builtIn="false" value="${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_INCLUDE_PATH}"/>
+									<listOptionValue builtIn="false" value="${SYSCONFIG_TOOL_INCLUDE_PATH}"/>
 									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/hDriver}"/>
 									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/lib/spy-by-wire}"/>
-									<listOptionValue builtIn="false" value="${SYSCONFIG_TOOL_INCLUDE_PATH}"/>
+									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/lib/cjtag}"/>
 									<listOptionValue builtIn="false" value="${PROJECT_ROOT}"/>
 									<listOptionValue builtIn="false" value="${PROJECT_ROOT}/${ConfigName}"/>
 									<listOptionValue builtIn="false" value="${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_INSTALL_DIR}/source"/>
@@ -54,8 +55,8 @@
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.DEFINE.1356708050" name="Pre-define NAME (--define, -D)" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.DEFINE" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_SYMBOLS}"/>
-									<listOptionValue builtIn="false" value="HDRIVER_MCU_CC2642"/>
 									<listOptionValue builtIn="false" value="${SYSCONFIG_TOOL_SYMBOLS}"/>
+									<listOptionValue builtIn="false" value="HDRIVER_MCU_CC2642"/>
 									<listOptionValue builtIn="false" value="DeviceFamily_CC26X2"/>
 								</option>
 								<option id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.OPT_LEVEL.1201438646" name="Optimization level (--opt_level, -O)" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.OPT_LEVEL" useByScannerDiscovery="false" value="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compilerID.OPT_LEVEL.off" valueType="enumerated"/>

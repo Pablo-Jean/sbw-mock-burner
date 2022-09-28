@@ -90,6 +90,11 @@
  */
 
 typedef enum{
+    CJTAG_MODE_2PIN,
+    CJTAG_MODE_4PIN
+}cjtag_mode_init_e;
+
+typedef enum{
     CJTAG_TEST_LOGIC_RESET,
     CJTAG_RUN_TEST_IDLE,
     CJTAG_SELECT_DR_SCAN,
@@ -126,6 +131,8 @@ typedef enum{
     CJTAG_SSCAN_1,
     CJTAG_SSCAN_2,
     CJTAG_SSCAN_3,
+
+    CJTAG_UNKNOWN = 0xFF
 }cjtag_scan_format_e;
 
 typedef enum{

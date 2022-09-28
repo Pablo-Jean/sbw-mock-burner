@@ -51,11 +51,17 @@
 #include "sbw.h"
 #include "cjtag.h"
 
+#include "icepick.h"
+
 // GPIOS
 
-#define dioTCK      17
-#define dioTMS      18
-#define dioRESET    16
+#define dioTCK      15
+#define dioTMS      21
+
+#define dioTDO      11
+#define dioTDI      12
+
+#define dioRESET    29
 
 /**
  * Firmware test
@@ -136,8 +142,11 @@ void __sbw_set_tdio(uint8_t state){
 }
 
 uint8_t __sbw_read_tdio(){
-    lS = hGpio_read(0, dioTMS);
-    return lS;
+    return (GPIO_readDio(dioTMS)>0);
+}
+
+uint8_t __sbw_read_tdo(){
+    return (GPIO_readDio(dioTDO)>0);
 }
 
 void __sbw_set_tck(uint8_t state){
@@ -146,6 +155,14 @@ void __sbw_set_tck(uint8_t state){
         GPIO_setDio(dioTCK);
     else
         GPIO_clearDio(dioTCK);
+}
+
+void __sbw_set_tdi(uint8_t state){
+    //hGpio_write(0, SBWTCK, (hGPIO_PIN_STATE_e)state);
+    if (state)
+        GPIO_setDio(dioTDI);
+    else
+        GPIO_clearDio(dioTDI);
 }
 
 void __sbw_set_reset(uint8_t state){
@@ -214,8 +231,19 @@ cjtag_t cjtag = {
         .tmsSetDir = __sbw_set_tdio_dir,
         .tmsSetIO = __sbw_set_tdio,
         .tmsGet = __sbw_read_tdio,
+        .tdoGet = __sbw_read_tdo,
         .tckSetIO = __sbw_set_tck,
+        .tdiSetIo = __sbw_set_tdi,
         .resetSetIO = __sbw_set_reset
+     }
+};
+
+icepick_t icepick = {
+     .linkHandle = (void*)&cjtag,
+     .fxn = {
+         .fxnInit = cjtag_init,
+         .fxnDrShift = cjtag_dr_shift,
+         .fxnIrShift = cjtag_ir_shift
      }
 };
 
@@ -307,19 +335,28 @@ void *mainThread(void *arg0)
 
     GPIO_write(CONFIG_GPIO_LED_1, CONFIG_GPIO_LED_ON);
 
-    cjtag_init(&cjtag);
+//    cjtag_init(&cjtag, CJTAG_MODE_4PIN);
+//
+//    tdo = cjtag_ir_shift(&cjtag, 0x3f, 6, 1);
+//    tdo = cjtag_dr_shift(&cjtag, 0x1f, 6, 1);
+//    tdo = cjtag_ir_shift(&cjtag, 0x22, 6, 1);
+//    tdo = cjtag_ir_shift(&cjtag, 0x5, 6, 1);
+//    tdo1 = cjtag_dr_shift(&cjtag, 0x205, 32, 1);
+//
+//    tdo = cjtag_ir_shift(&cjtag, 0x7, 6, 1);
+//    tdo = cjtag_dr_shift(&cjtag, 0x89, 8, 1);
+//    tdo = cjtag_dr_shift(&cjtag, 0x0, 8, 1);
+//    tdo = cjtag_dr_shift(&cjtag, 0x0, 8, 1);
+//
+//    tdo  = cjtag_ir_shift(&cjtag, 0x5, 6, 1);
+//    tdo1 = cjtag_dr_shift(&cjtag, 0x0, 32, 1);
+//
+//    tdo  = cjtag_ir_shift(&cjtag, 0x4, 6, 1);
+//    tdo2 = cjtag_dr_shift(&cjtag, 0x0, 32, 1);
 
-    tdo = cjtag_ir_shift(&cjtag, 0x3f, 6, 1);
-    tdo1 = cjtag_dr_shift(&cjtag, 0x0, 32, 1);
+    icepick_init(&icepick);
 
-    tdo = cjtag_ir_shift(&cjtag, 0x7, 6, 1);
-    tdo = cjtag_dr_shift(&cjtag, 0x6, 8, 1);
 
-    tdo  = cjtag_ir_shift(&cjtag, 0x3f, 6, 1);
-    tdo1 = cjtag_dr_shift(&cjtag, 0x7777, 16, 1);
-
-    tdo  = cjtag_ir_shift(&cjtag, 0x3f, 6, 1);
-    tdo2 = cjtag_dr_shift(&cjtag, 0x1, 16, 1);
     GPIO_write(CONFIG_GPIO_LED_1, CONFIG_GPIO_LED_OFF);
 
     while (1){

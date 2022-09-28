@@ -33,7 +33,9 @@ typedef struct{
     GpioSetIO tmsSetDir;
     GpioOut tmsSetIO;
     GpioIn tmsGet;
+    GpioIn tdoGet;
     GpioOut tckSetIO;
+    GpioOut tdiSetIo;
     GpioOut resetSetIO;
 }cjtag_gpio_t;
 
@@ -50,15 +52,15 @@ typedef struct{
  * Public Functions
  */
 
-void cjtag_init(cjtag_t *cjtag);
+void cjtag_init(cjtag_t *cjtag, cjtag_mode_init_e mode);
 
 void cjtag_TmsPattent(cjtag_t *cjtag, uint64_t pattern, uint8_t bits);
 
 uint64_t cjtag_writeOscan(cjtag_t *cjtag, uint64_t tms, uint64_t tdi, uint8_t bits);
 
-uint64_t cjtag_ir_shift(cjtag_t *cjtag, uint64_t d, uint8_t l, uint8_t endInIdle);
+uint64_t cjtag_ir_shift(cjtag_t *cjtag, uint64_t d, uint8_t l);
 
-uint64_t cjtag_dr_shift(cjtag_t *cjtag, uint64_t d, uint8_t l, uint8_t endInIdle);
+uint64_t cjtag_dr_shift(cjtag_t *cjtag, uint64_t d, uint8_t l);
 
 void cjtag_reset(cjtag_t *cjtag);
 

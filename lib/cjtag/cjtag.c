@@ -20,7 +20,7 @@
 
 #define _NOP()                  asm(" nop")
 
-#define   NOPS                  { _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP();}
+#define   NOPS                  { _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); }
 
 
 #define _ir_shift_enter_pat     0x3
@@ -39,7 +39,7 @@
 //#define   TMSLDH  {link->fxn.sbwtdioW(LOW); NOPS cjtag->pinFxn.tckSetIO(LOW); NOPS link->fxn.sbwtdioW(HIGH); cjtag->pinFxn.tckSetIO(HIGH); NOPS}
 
 //! \brief SBW macro: Set TDI = 1
-#define   TDI(x)    { cjtag->pinFxn.tckSetIO(_LOW); cjtag->pinFxn.tmsSetIO(!x); NOPS cjtag->pinFxn.tckSetIO(_HIGH); NOPS }
+#define   TDI(x)    { cjtag->pinFxn.tmsSetIO(!x); NOPS cjtag->pinFxn.tckSetIO(_LOW);  NOPS cjtag->pinFxn.tckSetIO(_HIGH); NOPS }
 
 //! \brief SBW macro: TDO cycle without reading TDO
 //#define   TDOnrd()  {cjtag->pinFxn.tmsSetDir(_DIR_INPUT); cjtag->pinFxn.tckSetIO(_LOW); NOPS cjtag->pinFxn.tckSetIO(_HIGH); cjtag->pinFxn.tmsSetDir(_DIR_OUTPUT); NOPS}
@@ -74,112 +74,116 @@ uint8_t __cjtag_get_tms(cjtag_t *cjtag){
     return cjtag->pinFxn.tmsGet();
 }
 
-void TMS(cjtag_t *cjtag, uint8_t x){
-    cjtag->pinFxn.tckSetIO(_LOW);
-    NOPS;
-    cjtag->pinFxn.tmsSetIO(x);
-    NOPS;
-    cjtag->pinFxn.tckSetIO(_HIGH);
-    NOPS;
-
+void __update_tms(cjtag_t *cjtag, uint8_t tms){
     switch(cjtag->fsmState){
     case CJTAG_TEST_LOGIC_RESET:
-        if (x)
+        if (tms)
             cjtag->fsmState = CJTAG_TEST_LOGIC_RESET;
         else
             cjtag->fsmState = CJTAG_RUN_TEST_IDLE;
         break;
     case CJTAG_RUN_TEST_IDLE:
-        if (x)
+        if (tms)
             cjtag->fsmState = CJTAG_SELECT_DR_SCAN;
         else
             cjtag->fsmState = CJTAG_RUN_TEST_IDLE;
         break;
     case CJTAG_SELECT_DR_SCAN:
-        if (x)
+        if (tms)
             cjtag->fsmState = CJTAG_SELECT_IR_SCAN;
         else
             cjtag->fsmState = CJTAG_CAPTURE_DR;
         break;
     case CJTAG_CAPTURE_DR:
-        if (x)
+        if (tms)
             cjtag->fsmState = CJTAG_EXIT_1_DR;
         else
             cjtag->fsmState = CJTAG_SHIFT_DR;
         break;
     case CJTAG_SHIFT_DR:
-        if (x)
+        if (tms)
             cjtag->fsmState = CJTAG_EXIT_1_DR;
         else
             cjtag->fsmState = CJTAG_SHIFT_DR;
         break;
     case CJTAG_EXIT_1_DR:
-        if (x)
+        if (tms)
             cjtag->fsmState = CJTAG_UPDATE_DR;
         else
             cjtag->fsmState = CJTAG_PAUSE_DR;
         break;
     case CJTAG_PAUSE_DR:
-        if (x)
+        if (tms)
             cjtag->fsmState = CJTAG_EXIT_2_DR;
         else
             cjtag->fsmState = CJTAG_PAUSE_DR;
         break;
     case CJTAG_EXIT_2_DR:
-        if (x)
+        if (tms)
             cjtag->fsmState = CJTAG_UPDATE_DR;
         else
             cjtag->fsmState = CJTAG_SHIFT_DR;
         break;
     case CJTAG_UPDATE_DR:
-        if(x)
+        if(tms)
             cjtag->fsmState = CJTAG_SELECT_DR_SCAN;
         else
             cjtag->fsmState = CJTAG_RUN_TEST_IDLE;
         break;
     case CJTAG_SELECT_IR_SCAN:
-        if (x)
+        if (tms)
             cjtag->fsmState = CJTAG_TEST_LOGIC_RESET;
         else
             cjtag->fsmState = CJTAG_CAPTURE_IR;
         break;
     case CJTAG_CAPTURE_IR:
-        if(x)
+        if(tms)
             cjtag->fsmState = CJTAG_EXIT_1_IR;
         else
             cjtag->fsmState = CJTAG_SHIFT_IR;
         break;
     case CJTAG_SHIFT_IR:
-        if (x)
+        if (tms)
             cjtag->fsmState = CJTAG_EXIT_1_IR;
         else
             cjtag->fsmState = CJTAG_SHIFT_IR;
         break;
     case CJTAG_EXIT_1_IR:
-        if (x)
+        if (tms)
             cjtag->fsmState = CJTAG_UPDATE_IR;
         else
             cjtag->fsmState = CJTAG_PAUSE_IR;
         break;
     case CJTAG_PAUSE_IR:
-        if (x)
-            cjtag->fsmState = CJTAG_EXIT_1_IR;
+        if (tms)
+            cjtag->fsmState = CJTAG_EXIT_2_IR;
         else
             cjtag->fsmState = CJTAG_PAUSE_IR;
         break;
     case CJTAG_EXIT_2_IR:
-        if (x)
+        if (tms)
             cjtag->fsmState = CJTAG_SHIFT_IR;
         else
             cjtag->fsmState = CJTAG_UPDATE_IR;
         break;
     case CJTAG_UPDATE_IR:
-        if (x)
+        if (tms)
             cjtag->fsmState = CJTAG_SELECT_DR_SCAN;
         else
             cjtag->fsmState = CJTAG_RUN_TEST_IDLE;
         break;
     }
+}
+
+void TMS(cjtag_t *cjtag, uint8_t x){
+    cjtag->pinFxn.tmsSetIO(x);
+    NOPS;
+    cjtag->pinFxn.tckSetIO(_LOW);
+    NOPS;
+    cjtag->pinFxn.tckSetIO(_HIGH);
+    NOPS;
+
+    __update_tms(cjtag, x);
 }
 
 // Scan formats
@@ -302,8 +306,26 @@ void __cjtag_oscan7(cjtag_t *cjtag, uint8_t tms, uint8_t tdi){
     }
 }
 
+void __cjtag_jscan0(cjtag_t *cjtag, uint8_t tms, uint8_t tdi, uint8_t *tdo){
+    cjtag->pinFxn.tdiSetIo(tdi);
+    cjtag->pinFxn.tmsSetIO(tms);
+    NOPS;
+    cjtag->pinFxn.tckSetIO(_HIGH);
+    NOPS;
+    cjtag->pinFxn.tckSetIO(_LOW);
+    NOPS;
+    cjtag->tdo_bit = cjtag->pinFxn.tdoGet();
+    if (tdo != NULL)
+        *tdo = cjtag->tdo_bit;
+    NOPS;
+    __update_tms(cjtag, tms);
+}
+
 void __cjtag_write(cjtag_t *cjtag, uint8_t tms, uint8_t tdi, uint8_t *tdo){
     switch(cjtag->scanFormat){
+    case CJTAG_JSCAN_0:
+        __cjtag_jscan0(cjtag, tms, tdi, tdo);
+        break;
     case CJTAG_OSCAN_0:
         __cjtag_oscan0(cjtag, tms, tdi, NULL, tdo);
         break;
@@ -343,8 +365,8 @@ void __cjtag_zbs(cjtag_t *cjtag){
     if (cjtag->fsmState == CJTAG_RUN_TEST_IDLE){
         cjtag_TmsPattent(cjtag, 0x5, 4); // DRSELECT -> DRCAPTURE -> DREXIT1 -> DRPAUSE
     }
-    cjtag_TmsPattent(cjtag, 0x3, 3); // DREXIT2 -> DRUPDATE -> DRSELECT
-                                      // DRCAPTURE -> DREXIT1 -> DRPAUSE
+    cjtag_TmsPattent(cjtag, 0x3, 3); // DREXIT2 -> DRUPDATE -> IDLE
+    cjtag_TmsPattent(cjtag, 0x5, 4); // DRSELECT -> DRCAPTURE -> DREXIT1 -> DRPAUSE
 }
 
 void __cjtag_escapeSeq(cjtag_t *cjtag, uint8_t set){
@@ -382,8 +404,8 @@ void __cjtag_CmdLevel(cjtag_t *cjtag, uint8_t level){
         __cjtag_zbs(cjtag);
     }
     // Shift in 1 bit to lock control level
-    cjtag_TmsPattent(cjtag, 0xD5, 8); //
-    cjtag_TmsPattent(cjtag, 0x5, 5); //
+    cjtag_TmsPattent(cjtag, 0xAD, 9); //
+    //cjtag_Tm-sPattent(cjtag, 0x3, 5); //
 }
 
 void __cjtag_IssueCmd1Par(cjtag_t *cjtag, uint8_t cmd, uint8_t par){
@@ -395,37 +417,33 @@ void __cjtag_IssueCmd1Par(cjtag_t *cjtag, uint8_t cmd, uint8_t par){
     for (i=0 ; i<2 ; i++){
         if (cjtag->fsmState == CJTAG_PAUSE_DR){
             // go to
-            cjtag_writeOscan(cjtag, 0x1, 0, 1); // DREXIT2
+            cjtag_writeOscan(cjtag, 0x1, 0, 2); // DREXIT2
         }
         else if (cjtag->fsmState == CJTAG_RUN_TEST_IDLE){
-            cjtag_writeOscan(cjtag, 0x1, 0, 2); // DRSELECT -> DRCAPTURE
+            cjtag_writeOscan(cjtag, 0x5, 0, 4); // DRSELECT -> DRCAPTURE -> EXIT1 -> PAUSE
+            cjtag_writeOscan(cjtag, 0x1, 0, 2); // DRSELECT -> DRCAPTURE -> DRSHIFT
         }
         // i == 0 : CMD
         // i == 1 : PARAMETER1
         if (d[i] > 0){
             // issue the number of bits in shift state
-            cjtag_writeOscan(cjtag, 0x0, 0, d[i]); // SHIFT(n)
+            cjtag_writeOscan(cjtag, 0x0, 0, d[i]-1); // SHIFT(n)
         }
-        cjtag_writeOscan(cjtag, 0x3, 0, 2); // DREXIT1 -> DRUPDATE
-        cjtag_writeOscan(cjtag, 0x5, 0, 4); // DRSELECT -> DRCAPTURE -> DREXIT1 -> DRPAUSE
+        if (i < 1){
+            cjtag_writeOscan(cjtag, 0x3, 0, 3); // DREXIT1 -> DRUPDATE -> IDLE
+            cjtag_writeOscan(cjtag, 0x5, 0, 4); // DRSELECT -> DRCAPTURE -> DREXIT1 -> DRPAUSE
+        }
     }
     if (cmd == OPCODE_STFMT){
         cjtag_writeOscan(cjtag, 0x3, 0, 3); // IDLE
 
         cjtag->scanFormat = CJTAG_OSCAN_2;
-        cjtag_writeOscan(cjtag, 0x00, 0, 4);
 
-//        cjtag_writeOscan(cjtag, 0x05, 0, 4);
+        cjtag_writeOscan(cjtag, 0x5, 0, 4); // DRSELECT -> DRCAPTURE -> DREXIT1 -> DRPAUSE
     }
     else{
-//        cjtag_writeOscan(cjtag, 0x3, 0, 3); // IDLE
-
-        //befFsm = cjtag->fsmState;
-        //cjtag->scanFormat = CJTAG_JSCAN_0;
-        //cjtag_writeOscan(cjtag, 0x00, 0, 7);
-        //cjtag->fsmState = befFsm;
-
-        //cjtag_writeOscan(cjtag, 0x5, 0, 4); // DRSELECT -> DRCAPTURE -> DREXIT1 -> DRPAUSE
+        cjtag_writeOscan(cjtag, 0x3, 0, 3); // DREXIT1 -> DRUPDATE -> IDLE
+        cjtag_writeOscan(cjtag, 0x5, 0, 4); // DRSELECT -> DRCAPTURE -> DREXIT1 -> DRPAUSE
     }
 
 }
@@ -443,30 +461,32 @@ void cjtag_TmsPattent(cjtag_t *cjtag, uint64_t pattern, uint8_t bits){
     }
 }
 
-void cjtag_init(cjtag_t *cjtag){
+void cjtag_init(cjtag_t *cjtag, cjtag_mode_init_e mode){
     if (cjtag == NULL)
         return;
     if (cjtag->pinFxn.tckSetIO == NULL || cjtag->pinFxn.tmsGet == NULL || cjtag->pinFxn.tmsSetDir == NULL || cjtag->pinFxn.tmsSetIO == NULL)
         return;
 
-    cjtag->scanFormat = CJTAG_JSCAN_0;
+    cjtag->scanFormat = CJTAG_UNKNOWN;
     cjtag->pinFxn.tmsSetDir(_DIR_OUTPUT);
     cjtag->pinFxn.tckSetIO(_HIGH);
     cjtag->pinFxn.tmsSetIO(_HIGH);
+    if (cjtag->pinFxn.tdiSetIo != NULL){
+        cjtag->pinFxn.tdiSetIo(_HIGH);
+    }
 
     cjtag_reset(cjtag);
 
-    __cjtag_strobeTck(cjtag, 100);
+    __cjtag_strobeTck(cjtag, 1000);
     Task_sleep(10);
 
     cjtag_release(cjtag);
 
-    __cjtag_strobeTck(cjtag, 80E3);
+    __cjtag_strobeTck(cjtag, 40E3);
     // wait chip to reset
     Task_sleep(10);
 //
-    cjtag->pinFxn.tmsSetIO(_HIGH);
-    __cjtag_strobeTck(cjtag, 1500);
+    __cjtag_strobeTck(cjtag, 40E3);
 
 //    cjtag->pinFxn.tmsSetIO(_LOW);
 //
@@ -478,29 +498,59 @@ void cjtag_init(cjtag_t *cjtag){
     cjtag_TmsPattent(cjtag, CJTAG_PATTERN_TLR, 16);
     cjtag_TmsPattent(cjtag, CJTAG_PATTERN_IDLE, 1);
 
-    __cjtag_escapeSeq(cjtag, 7);
-
     // Execute a BYPASS IR to start at control level 0
      cjtag_TmsPattent(cjtag, 0x03, 3); // DRSELECT -> IRSELECT -> IRCAPTURE
      cjtag_TmsPattent(cjtag, 0x00, 64); // Shift in 64 bits to load bypass instruction
-     cjtag_TmsPattent(cjtag, 0x03, 3); // IREXIT2 -> IRUPDATE -> IDLE
+     cjtag_TmsPattent(cjtag, 0x03, 3); // IREXIT1 -> IRUPDATE -> IDLE
+
+    // Execute a BYPASS IR to start at control level 0
+     cjtag_TmsPattent(cjtag, 0x01, 2); // DRSELECT -> DRCAPTURE
+     cjtag_TmsPattent(cjtag, 0x00, 32); // Shift in 64 bits to load Data
+     cjtag_TmsPattent(cjtag, 0x03, 3); // DREXIT1 -> DRUPDATE -> IDLE
+
+     // Execute a BYPASS IR to start at control level 0
+      cjtag_TmsPattent(cjtag, 0x01, 2); // DRSELECT -> DRCAPTURE
+      cjtag_TmsPattent(cjtag, 0x00, 32); // Shift in 64 bits to load Data
+      cjtag_TmsPattent(cjtag, 0x03, 3); // DREXIT1 -> DRUPDATE -> IDLE
+
+      // Execute a BYPASS IR to start at control level 0
+       cjtag_TmsPattent(cjtag, 0x03, 3); // DRSELECT -> IRSELECT -> IRCAPTURE
+       cjtag_TmsPattent(cjtag, 0x00, 64); // Shift in 64 bits to load bypass instruction
+       cjtag_TmsPattent(cjtag, 0x03, 3); // IREXIT1 -> IRUPDATE -> IDLE
 
     __cjtag_CmdLevel(cjtag, 2);
 
-    __cjtag_IssueCmd1Par(cjtag, OPCODE_STC1, _CMD_STC1_SEDGE_RISE_EDGE);
-    cjtag_TmsPattent(cjtag, 0x3, 7);
+//    __cjtag_IssueCmd1Par(cjtag, OPCODE_STC1, _CMD_STC1_SEDGE_RISE_EDGE);
+//    cjtag_writeOscan(cjtag, 0x0, 0, 4);
+//    cjtag_TmsPattent(cjtag, 0x3, 4);
 
-    __cjtag_IssueCmd1Par(cjtag, OPCODE_STFMT, _CMD_STFMT_OSCAN2);
+    if (mode == CJTAG_MODE_2PIN){
+        __cjtag_IssueCmd1Par(cjtag, OPCODE_STFMT, _CMD_STFMT_OSCAN2);
+//        cjtag_writeOscan(cjtag, 0x3, 0, 4);
 
-    cjtag_writeOscan(cjtag, 0x0, 0, 4);
+//        cjtag_TmsPattent(cjtag, CJTAG_PATTERN_TLR, 16);
+//        cjtag_TmsPattent(cjtag, CJTAG_PATTERN_IDLE, 1);
 
-    __cjtag_IssueCmd1Par(cjtag, OPCODE_STMC, 1);
-    cjtag_writeOscan(cjtag, 0x3, 0, 7);
+//        __cjtag_IssueCmd1Par(cjtag, OPCODE_STMC, 1);
+//        cjtag_writeOscan(cjtag, 0x3, 0, 4);
+    }
+    else{
+        __cjtag_IssueCmd1Par(cjtag, OPCODE_STC2, 9);
+//        cjtag_writeOscan(cjtag, 0x3, 0, 4);
 
-    // Execute a BYPASS IR to start at control level 0
-    cjtag_writeOscan(cjtag, 0x03, 0x0, 3); // DRSELECT -> IRSELECT -> IRCAPTURE
-    cjtag_writeOscan(cjtag, 0x00, 0x0, 64); // Shift in 64 bits to load bypass instruction
-    cjtag_writeOscan(cjtag, 0x03, 0x0, 3); // IREXIT2 -> IRUPDATE -> IDLE
+        cjtag->scanFormat = CJTAG_JSCAN_0;
+//        cjtag_TmsPattent(cjtag, CJTAG_PATTERN_TLR, 16);
+//        cjtag_TmsPattent(cjtag, CJTAG_PATTERN_IDLE, 1);
+
+        __cjtag_IssueCmd1Par(cjtag, OPCODE_STMC, 1);
+
+//        cjtag_writeOscan(cjtag, 0x3, 0, 4);
+    }
+
+//     Execute a BYPASS IR to start at control level 0
+    cjtag_writeOscan(cjtag, 0x01, 0xFF, 2); // EXIT2 -> DRSHIDR
+    cjtag_writeOscan(cjtag, 0x00, ~0, 64); // Shift in 64 bits to load bypass instruction
+    cjtag_writeOscan(cjtag, 0x03, 0xFF, 3); // IREXIT1 -> IRUPDATE -> IDLE
 
 
     // Execute a BYPASS IR to start at control level 0
@@ -535,7 +585,7 @@ uint64_t cjtag_writeOscan(cjtag_t *cjtag, uint64_t tms, uint64_t tdi, uint8_t bi
     return tdo;
 }
 
-uint64_t cjtag_ir_shift(cjtag_t *cjtag, uint64_t d, uint8_t l, uint8_t endInIdle){
+uint64_t cjtag_ir_shift(cjtag_t *cjtag, uint64_t d, uint8_t l){
     uint8_t i;
     uint64_t ret;
 
@@ -555,16 +605,15 @@ uint64_t cjtag_ir_shift(cjtag_t *cjtag, uint64_t d, uint8_t l, uint8_t endInIdle
         break;
     }
 
-    ret = 0;
+    ret = cjtag->tdo_bit;
     for (i=0 ; i<l ; i++){
         if (i<(l-1))
-            ret |= cjtag_writeOscan(cjtag, _LOW, (d>>i)&0x1, 1)<<i;
+            ret |= cjtag_writeOscan(cjtag, _LOW, (d>>i)&0x1, 1)<<(i+1);
         else
-            ret |= cjtag_writeOscan(cjtag, _HIGH, (d>>i)&0x1, 1)<<i;
+            cjtag_writeOscan(cjtag, _HIGH, (d>>i)&0x1, 1);
     }
-//    cjtag_writeOscan(cjtag, 0x1, _LOW, 1);
 
-    if (endInIdle){
+    if (1){
         // update IR and go to IDLE state
         cjtag_writeOscan(cjtag, 0x1, _LOW, 2);
     }
@@ -577,7 +626,7 @@ uint64_t cjtag_ir_shift(cjtag_t *cjtag, uint64_t d, uint8_t l, uint8_t endInIdle
     return ret;
 }
 
-uint64_t cjtag_dr_shift(cjtag_t *cjtag, uint64_t d, uint8_t l, uint8_t endInIdle){
+uint64_t cjtag_dr_shift(cjtag_t *cjtag, uint64_t d, uint8_t l){
     uint8_t i;
     uint64_t ret;
 
@@ -597,16 +646,17 @@ uint64_t cjtag_dr_shift(cjtag_t *cjtag, uint64_t d, uint8_t l, uint8_t endInIdle
         break;
     }
 
-    ret = 0;
+    ret = cjtag->tdo_bit;
     for (i=0 ; i<l ; i++){
         if (i<(l-1))
-            ret |= cjtag_writeOscan(cjtag, _LOW, (d>>i)&0x1, 1)<<i;
-        else
-            ret |= cjtag_writeOscan(cjtag, _HIGH, (d>>i)&0x1, 1)<<i;
+            ret |= cjtag_writeOscan(cjtag, _LOW, (d>>i)&0x1, 1)<<(i+1);
+        else{
+            // last bit doens't have a valid TDO
+            cjtag_writeOscan(cjtag, _HIGH, (d>>i)&0x1, 1);
+        }
     }
-//    cjtag_writeOscan(cjtag, 0x1, _LOW, 1);
 
-    if (endInIdle){
+    if (1){
         // update DR and go to IDLE state
         cjtag_writeOscan(cjtag, 0x1, _LOW, 2);
     }

@@ -244,6 +244,14 @@ icepick_t icepick = {
          .fxnInit = cjtag_init,
          .fxnDrShift = cjtag_dr_shift,
          .fxnIrShift = cjtag_ir_shift
+     },
+     .cmd = {
+         ._size         = 6,
+         .router        = 0x02,
+         .idCode        = 0x04,
+         .icePickCode   = 0x05,
+         .connect       = 0x07,
+         .bypass        = 0x3f
      }
 };
 
@@ -355,6 +363,11 @@ void *mainThread(void *arg0)
 //    tdo2 = cjtag_dr_shift(&cjtag, 0x0, 32, 1);
 
     icepick_init(&icepick);
+
+    icepick_router(&icepick);
+
+    tdo = icepick_bypass(&icepick, 0x30, 16);
+    tdo = icepick_bypass(&icepick, 0x123, 16);
 
 
     GPIO_write(CONFIG_GPIO_LED_1, CONFIG_GPIO_LED_OFF);

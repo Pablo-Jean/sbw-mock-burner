@@ -410,7 +410,6 @@ void __cjtag_CmdLevel(cjtag_t *cjtag, uint8_t level){
 
 void __cjtag_IssueCmd1Par(cjtag_t *cjtag, uint8_t cmd, uint8_t par){
     uint8_t i, d[2];
-    cjtag_fsm_state_e befFsm;
 
     d[0] = cmd;
     d[1] = par;

@@ -244,14 +244,6 @@ icepick_t icepick = {
          .fxnInit = cjtag_init,
          .fxnDrShift = cjtag_dr_shift,
          .fxnIrShift = cjtag_ir_shift
-     },
-     .cmd = {
-         ._size         = 6,
-         .router        = 0x02,
-         .idCode        = 0x04,
-         .icePickCode   = 0x05,
-         .connect       = 0x07,
-         .bypass        = 0x3f
      }
 };
 

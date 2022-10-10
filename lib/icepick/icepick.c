@@ -16,6 +16,10 @@
 #define _WRITE_ENABLED                          1
 #define _WRITE_DISABLED                         0
 
+#define _CMD_LEN                                6
+
+#define _CONNECT_CODE                           0x89
+
 
 /**
  * Typedefs
@@ -76,7 +80,7 @@ uint32_t __icepick_set_router(icepick_t *ice, uint8_t block, uint8_t reg, uint32
     router.regNumber = reg;
     router.regValue = value;
 
-    _IrShift(ice, ice->cmd.router, ice->cmd._size);
+    _IrShift(ice, ICEPICK_CMD_ROUTER, _CMD_LEN);
     ret = _DrShift(ice, router._raw, 32);
 
     return ret;
@@ -90,7 +94,7 @@ uint32_t __icepick_get_router(icepick_t *ice, uint8_t block, uint8_t reg){
     router.blockSel = block;
     router.regNumber = reg;
 
-    _IrShift(ice, ice->cmd.router, ice->cmd._size);
+    _IrShift(ice, ICEPICK_CMD_ROUTER, _CMD_LEN);
     ret = _DrShift(ice, router._raw, 32);
 
     return ret;
@@ -109,14 +113,14 @@ void icepick_init(icepick_t *ice){
 
     ice->fxn.fxnInit(ice->linkHandle, CJTAG_MODE_4PIN);
 
-    _IrShift(ice, ice->cmd.idCode, ice->cmd._size);
+    _IrShift(ice, ice->cmd.idCode, _CMD_LEN);
     ice->info.DeviceId._raw = _DrShift(ice, 0x0, 32);
 
-    _IrShift(ice, ice->cmd.icePickCode, ice->cmd._size);
+    _IrShift(ice, ice->cmd.icePickCode, _CMD_LEN);
     ice->info.IdCode._raw = _DrShift(ice, 0x0, 32);
 
-    _IrShift(ice, ice->cmd.connect, ice->cmd._size);
-    _DrShift(ice, 0x89, 8);
+    _IrShift(ice, ICEPICK_CMD_CONNECT, _CMD_LEN);
+    _DrShift(ice, _CONNECT_CODE, 8);
 }
 
 uint32_t icepick_router(icepick_t *ice){
@@ -136,7 +140,7 @@ uint32_t icepick_router(icepick_t *ice){
     sdtrRec._raw = __icepick_set_router(ice, 0, 0x1, sdtrSend._raw);
     sdtrRec._raw = __icepick_get_router(ice, 0, 0x1);
 
-    _IrShift(ice, ice->cmd.bypass, ice->cmd._size);
+    _IrShift(ice, ICEPICK_CMD_BYPASS, _CMD_LEN);
 
     sdtrSend._raw = 0x0;
     sdtrRec._raw = __icepick_get_router(ice, 2, 0x00);
@@ -157,7 +161,7 @@ uint32_t icepick_router(icepick_t *ice){
     sdtrSend._raw = 0x0;
     sdtrRec._raw = __icepick_get_router(ice, 2, 0x00);
 
-    _IrShift(ice, ice->cmd.bypass, ice->cmd._size);
+    _IrShift(ice, ICEPICK_CMD_BYPASS, _CMD_LEN);
 
     _IrShift(ice, 0x01, 1);
     _DrShift(ice, 0x80, 8);
@@ -176,7 +180,7 @@ uint32_t icepick_bypass(icepick_t *ice, uint32_t data, uint32_t len){
     if (ice->fxn.fxnInit == NULL || ice->fxn.fxnDrShift == NULL || ice->fxn.fxnIrShift == NULL)
         return 0;
 
-    _IrShift(ice, ice->cmd.bypass, ice->cmd._size);
+    _IrShift(ice, ICEPICK_CMD_BYPASS, _CMD_LEN);
     ret = (_DrShift(ice, data, len))>>1;
 
     return ret;

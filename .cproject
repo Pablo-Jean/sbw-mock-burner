@@ -47,6 +47,8 @@
 									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/lib/spy-by-wire}"/>
 									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/lib/cjtag}"/>
 									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/lib/icepick}"/>
+									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/lib/devices}"/>
+									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/lib/adiv5}"/>
 									<listOptionValue builtIn="false" value="${PROJECT_ROOT}"/>
 									<listOptionValue builtIn="false" value="${PROJECT_ROOT}/${ConfigName}"/>
 									<listOptionValue builtIn="false" value="${COM_TI_SIMPLELINK_CC13XX_CC26XX_SDK_INSTALL_DIR}/source"/>

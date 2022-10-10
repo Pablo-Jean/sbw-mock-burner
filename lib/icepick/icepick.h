@@ -36,6 +36,14 @@ typedef enum{
     MANUF_UNKNOWN = 0xFF
 }icepick_manuf_id_e;
 
+typedef enum{
+    ICEPICK_CMD_ROUTER        = 0x02,
+    ICEPICK_CMD_IDCODE        = 0x04,
+    ICEPICK_CMD_ICECODE       = 0x05,
+    ICEPICK_CMD_CONNECT       = 0x07,
+    ICEPICK_CMD_BYPASS        = 0x3f
+}icepick_cmd_e;
+
 /**
  * Typedefs
  */
@@ -65,26 +73,24 @@ typedef union{
     };
 }icepick_device_id_t;
 
-typedef struct{
-    uint8_t _size;
-    uint32_t connect;
-    uint32_t idCode;
-    uint32_t icePickCode;
-    uint32_t bypass;
-    uint32_t router;
-}icepick_cmd_t;
+// abandoned
+//typedef struct{
+//    uint8_t _size;
+//    uint32_t connect;
+//    uint32_t idCode;
+//    uint32_t icePickCode;
+//    uint32_t bypass;
+//    uint32_t router;
+//}icepick_cmd_t;
 
 /*
  * Fxn structs
  */
 
-typedef void(*_fxnInit)(void* handle, uint8_t mode);
 typedef uint64_t(*_fxnDrShift)(void* handle, uint64_t data, uint8_t l);
 typedef uint64_t(*_fxnIrShift)(void* handle, uint64_t data, uint8_t l);
-typedef uint64_t(*_fxnBypass)(void* handle, uint64_t data, uint8_t l);
 
 typedef struct{
-    _fxnInit fxnInit;
     _fxnDrShift fxnDrShift;
     _fxnIrShift fxnIrShift;
 }icepick_fxn_t;
@@ -96,12 +102,11 @@ typedef struct{
 typedef struct{
     icepick_fxn_t fxn;
     void *linkHandle;
-    icepick_cmd_t cmd;
     struct{
         icepick_device_id_t DeviceId;
         icepick_idcode_t IdCode;
     }info;
-    uint32_t IssuedCmd;
+    icepick_cmd_e IssuedCmd;
 }icepick_t;
 
 
@@ -111,7 +116,11 @@ typedef struct{
 
 void icepick_init(icepick_t *ice);
 
-uint32_t icepick_router(icepick_t *ice);
+uint32_t icepick_issueCMD(uint32_t *ice, icepick_cmd_e cmd);
+
+uint32_t icepick_router(icepick_t *ice, uint32_t *dataO, uint32_t *lenO);
+
+uint32_t icepick_connect(icepick_t *ice, , uint32_t *dataO, uint32_t *lenO);
 
 uint32_t icepick_bypass(icepick_t *ice, uint32_t data, uint32_t len);
 

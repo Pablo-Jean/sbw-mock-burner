@@ -54,13 +54,15 @@ typedef struct{
 
 void cjtag_init(cjtag_t *cjtag, cjtag_mode_init_e mode);
 
+void cjtag_ClkStrobe(cjtag_t *cjtag, uint32_t clocks, uint8_t tms);
+
 void cjtag_TmsPattent(cjtag_t *cjtag, uint64_t pattern, uint8_t bits);
 
 uint64_t cjtag_writeOscan(cjtag_t *cjtag, uint64_t tms, uint64_t tdi, uint8_t bits);
 
 uint64_t cjtag_ir_shift(cjtag_t *cjtag, uint64_t d, uint8_t l);
 
-uint64_t cjtag_dr_shift(cjtag_t *cjtag, uint64_t d, uint8_t l);
+uint64_t cjtag_dr_shift(cjtag_t *cjtag, uint64_t d, uint8_t l, uint8_t endInPause);
 
 void cjtag_reset(cjtag_t *cjtag);
 

@@ -33,6 +33,7 @@
 /*
  *  ======== gpiointerrupt.c ========
  */
+#include <program.h>
 #include <stdint.h>
 #include <stddef.h>
 
@@ -49,10 +50,10 @@
 #include "ti/devices/cc13x2_cc26x2/driverlib/gpio.h"
 
 #include "sbw.h"
-#include "cjtag.h"
 
-#include "icepick.h"
 
+#include "cc26xx/cc26xx.h"
+#include "program.h"
 // GPIOS
 
 #define dioTCK      15
@@ -97,6 +98,8 @@ uint8_t frmFFDA[] = {0x24 , 0xC5 , 0x24 , 0xC5 , 0x24 , 0xC5 , 0x24 , 0xC5 , 0x2
 sbw_buf_t buffer;
 
 uint8_t lS;
+
+
 
 /*
  *  ======== gpioButtonFxn0 ========
@@ -238,14 +241,17 @@ cjtag_t cjtag = {
      }
 };
 
-icepick_t icepick = {
-     .linkHandle = (void*)&cjtag,
-     .fxn = {
-         .fxnInit = cjtag_init,
-         .fxnDrShift = cjtag_dr_shift,
-         .fxnIrShift = cjtag_ir_shift
-     }
+cc26xx_t cc26x2 = {
+       .cjtag = &cjtag,
 };
+
+//icepick_t icepick = {
+//     .linkHandle = (void*)&cjtag,
+//     .fxn = {
+//         .fxnDrShift = cjtag_dr_shift,
+//         .fxnIrShift = cjtag_ir_shift
+//     }
+//};
 
 sbw_t SBW;
 uint32_t ret;
@@ -253,12 +259,17 @@ uint32_t ret;
 /*
  *  ======== mainThread ========
  */
+uint64_t tdo, tdo1, tdo2;
+uint32_t mem[10000];
+
+uint32_t frm[] = { 0x415263 , 0x15151515, 0x0, 0x710, 0xAA55CC50, 0xFFCC, 0x0};
+
 void *mainThread(void *arg0)
 {
     uint8_t instruction = 0;
-    uint16_t data;
-    uint64_t tdo, tdo1, tdo2;
+    uint32_t data, *algo32, size, status, i;
     word ret;
+
     Timer_Params params;
 
     /* Call driver init functions */
@@ -295,80 +306,117 @@ void *mainThread(void *arg0)
     GPIO_clearDio(dioRESET);
     GPIO_setDio(dioTCK);
     GPIO_setDio(dioTMS);
-    /*
-    sbw_init(&SBW, &data_link);
 
-    if (sbw_cmd(&SBW, SBW_GET_DEVICE_ID, NULL) == STATUS_FUSEBLOWN){
-        sbw_cmd(&SBW, SBW_JTAG_PASSWORD_REMOVE, NULL);
-        if (sbw_cmd(&SBW, SBW_GET_DEVICE_ID, NULL) != STATUS_OK){
-            while(1);
-        }
-    }
+//    while (1){
+//        GPIO_write(CONFIG_GPIO_LED_0, CONFIG_GPIO_LED_ON);
+//        GPIO_write(CONFIG_GPIO_LED_1, CONFIG_GPIO_LED_OFF);
+//        __delay_ms(500);
+//
+//        GPIO_write(CONFIG_GPIO_LED_0, CONFIG_GPIO_LED_OFF);
+//        GPIO_write(CONFIG_GPIO_LED_1, CONFIG_GPIO_LED_ON);
+//        __delay_ms(500);
+//    }
 
-    sbw_cmd(&SBW, SBW_DISABLE_WDT, NULL);
-
-    sbw_cmd(&SBW, SBW_DISABLE_MPU, NULL);
-
-    sbw_cmd(&SBW, SBW_TEST_RAM_WRITE, NULL);
-
-    buffer.data = (uint16_t*)frmC400;
-    buffer.stAddr = 0xC400;
-    buffer.len = sizeof(frmC400)/2;
-    ret = sbw_cmd(&SBW, SBW_WRITE_WITH_CHECK, &buffer);
-
-
-    buffer.data = (uint16_t*)frmFF80;
-    buffer.stAddr = 0xFF80;
-    buffer.len = sizeof(frmFF80)/2;
-    ret = sbw_cmd(&SBW, SBW_WRITE_WITH_CHECK, &buffer);
-
-
-    buffer.data = (uint16_t*)frmFFDA;
-    buffer.stAddr = 0xFFDA;
-    buffer.len = sizeof(frmFFDA)/2;
-    ret = sbw_cmd(&SBW, SBW_WRITE_WITH_CHECK, &buffer);
-
-//    sbw_cmd(&SBW, SBW_JTAG_PASSWORD_WRITE, NULL);
-
-    sbw_cmd(&SBW, SBW_RELEASE_DEVICE, NULL);
-    */
 
     GPIO_write(CONFIG_GPIO_LED_1, CONFIG_GPIO_LED_ON);
 
-//    cjtag_init(&cjtag, CJTAG_MODE_4PIN);
-//
-//    tdo = cjtag_ir_shift(&cjtag, 0x3f, 6, 1);
-//    tdo = cjtag_dr_shift(&cjtag, 0x1f, 6, 1);
-//    tdo = cjtag_ir_shift(&cjtag, 0x22, 6, 1);
-//    tdo = cjtag_ir_shift(&cjtag, 0x5, 6, 1);
-//    tdo1 = cjtag_dr_shift(&cjtag, 0x205, 32, 1);
-//
-//    tdo = cjtag_ir_shift(&cjtag, 0x7, 6, 1);
-//    tdo = cjtag_dr_shift(&cjtag, 0x89, 8, 1);
-//    tdo = cjtag_dr_shift(&cjtag, 0x0, 8, 1);
-//    tdo = cjtag_dr_shift(&cjtag, 0x0, 8, 1);
-//
-//    tdo  = cjtag_ir_shift(&cjtag, 0x5, 6, 1);
-//    tdo1 = cjtag_dr_shift(&cjtag, 0x0, 32, 1);
-//
-//    tdo  = cjtag_ir_shift(&cjtag, 0x4, 6, 1);
-//    tdo2 = cjtag_dr_shift(&cjtag, 0x0, 32, 1);
+    cc26xx_init(&cc26x2);
 
-    icepick_init(&icepick);
+//    sdtr._raw = 0x12008;
+//    cc26xx_cfg_tap(&cc26x2, CC26XX_TAP_CM4F, &sdtr);
+//    sdtr._raw = 0x2108;
+//    cc26xx_cfg_tap(&cc26x2, CC26XX_TAP_CM4F, &sdtr);
+//    sdtr._raw = 0x28233F;
+//    cc26xx_cfg_tap(&cc26x2, CC26XX_TAP_CM4F, &sdtr);
 
-    icepick_router(&icepick);
+    cc26xx_cm4f_route(&cc26x2);
 
-    tdo = icepick_bypass(&icepick, 0x30, 16);
-    tdo = icepick_bypass(&icepick, 0x123, 16);
+    cc26xx_cm4f_idcode(&cc26x2, NULL);
 
+    arm7_init(&cc26x2.arm7, CC26XX_CSW_PROT_DATA);
+
+   cc26xx_cm4f_start_script(&cc26x2);
+
+   cc26xx_cm4f_erase_all(&cc26x2);
+
+
+   algo32 = (uint32_t*)cc26_rm_0x00;
+   cc26xx_cm4f_write(&cc26x2, 0x0, algo32, cc26_rm_0x00_len);
+
+   algo32 = (uint32_t*)cc26_rm_0x0040;
+   cc26xx_cm4f_write(&cc26x2, 0x0040, algo32, cc26_rm_0x0040_len);
+
+   algo32 = (uint32_t*)cc26_rm_0x4d74;
+   cc26xx_cm4f_write(&cc26x2, 0x4d74, algo32, cc26_rm_0x4d74_len);
+
+   algo32 = (uint32_t*)cc26_rm_0x57fa8;
+   cc26xx_cm4f_write(&cc26x2, 0x57fa8, algo32, cc26_rm_0x57fa8_len);
+
+//   cc26xx_cm4f_read(&cc26x2, 0x0, mem, 10000);
+//   algo32 = (uint32_t*)cc26_rm_0x00;
+//   for (i=0 ; i<10000 ; i++){
+//       uint32_t a,b;
+//       a = mem[i];
+//       b = algo32[i];
+//       if (a != b)
+//       {
+//           // failed
+//           cc26xx_cm4f_write(&cc26x2, 0x57fa8, algo32, cc26_rm_0x57fa8_len);
+//       }
+//   }
+
+//    par.address = 0;
+//    par.length = 4;
+//    par.command = CC26XX_CMD_ERASE_ALL;
+//    par.status = CC26XX_BUFFER_FULL;
+//    cc26xx_cm4f_ap_write(&cc26x2, MEM_AP_REG_TAR, CC26X2_ALGO_PARAMS_0);
+//    for (tdo = 0 ; tdo < 4 ; tdo++){
+//        cc26xx_cm4f_ap_write(&cc26x2, MEM_AP_REG_DRW, par._raw[tdo]);
+//    }
+//
+//    do{
+//        cc26xx_cm4f_ap_write(&cc26x2, MEM_AP_REG_TAR, CC26X2_ALGO_PARAMS_0 + CC26XX_STATUS_OFFSET);
+//        cc26xx_cm4f_ap_read(&cc26x2, MEM_AP_REG_DRW, &status);
+//    } while (status == CC26XX_BUFFER_FULL);
+//
+//    Task_sleep(100);
+//
+//    cc26xx_cm4f_ap_write(&cc26x2, MEM_AP_REG_TAR, CC26X2_ALGO_BUFFER_0 + (0*4));
+//    for (tdo = 0 ; tdo < (sizeof(frm)/4) ; tdo++){
+//        cc26xx_cm4f_ap_write(&cc26x2, MEM_AP_REG_DRW, frm[tdo]);
+//    }
+//    par.address = 0x0;
+//    par.length = sizeof(frm);
+//    par.command = CC26XX_CMD_PROGRAM;
+//    par.status = CC26XX_BUFFER_FULL;
+//    for (tdo = 0 ; tdo < 4 ; tdo++){
+//        cc26xx_cm4f_ap_write(&cc26x2, MEM_AP_REG_TAR, CC26X2_ALGO_PARAMS_0 + (tdo*4));
+//        cc26xx_cm4f_ap_write(&cc26x2, MEM_AP_REG_DRW, par._raw[tdo]);
+//    }
+//
+//    do{
+//        cc26xx_cm4f_ap_write(&cc26x2, MEM_AP_REG_TAR, CC26X2_ALGO_PARAMS_0 + CC26XX_STATUS_OFFSET);
+//        cc26xx_cm4f_ap_read(&cc26x2, MEM_AP_REG_DRW, &status);
+//    } while (status == CC26XX_BUFFER_FULL);
+//
+//
+//    for (tdo = 0 ; tdo < 1000 ; tdo++){
+//         cc26xx_cm4f_reg_read(&cc26x2, tdo*4, &mem[tdo]);
+//    }
+
+
+
+    __sbw_set_reset(0);
+    Task_sleep(100);
+    __sbw_set_reset(1);
 
     GPIO_write(CONFIG_GPIO_LED_1, CONFIG_GPIO_LED_OFF);
 
     while (1){
-        GPIO_write(CONFIG_GPIO_LED_0, CONFIG_GPIO_LED_OFF);
+        GPIO_write(CONFIG_GPIO_LED_0, CONFIG_GPIO_LED_ON);
         __delay_ms(500);
 
-        GPIO_write(CONFIG_GPIO_LED_0, CONFIG_GPIO_LED_ON);
+        GPIO_write(CONFIG_GPIO_LED_0, CONFIG_GPIO_LED_OFF);
         __delay_ms(500);
     }
 

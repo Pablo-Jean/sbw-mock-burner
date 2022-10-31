@@ -25,40 +25,15 @@
  * Typedefs
  */
 
-typedef union{
-    uint32_t _raw;
-    struct{
-        uint32_t regValue :24;
-        uint8_t regNumber :4;
-        uint8_t blockSel  :3;
-        uint8_t WrEn      :1;
-    };
-}_icepick_router_scan_t;
-
-typedef union{
-    struct{
-        uint8_t TapPresent      :1;
-        uint8_t TapAccessible   :1;
-        uint8_t _reserved1      :1;
-        uint8_t ForceActive     :1;
-        uint8_t _reserved2      :4;
-        uint8_t SelectTap       :1;
-        uint8_t Visibletap      :1;
-        uint8_t _reserved3      :4;
-        uint8_t ResetControl    :3;
-        uint8_t InReset_RelWIR  :1;
-        uint8_t _reserved4      :2;
-        uint8_t InhibitSleep    :1;
-        uint8_t _reserved5      :3;
-    };
-    uint32_t _raw;
-}_icepick_sdtr_t;
 
 /**
  * Privates
  */
 
-uint64_t _IrShift(icepick_t *ice, uint64_t data, uint64_t len){
+static uint64_t _IrShift(icepick_t *ice, uint64_t data, uint64_t len){
+    if (ice->fxn.fxnIrShift == NULL)
+        return 0x00;
+
     if (ice->IssuedCmd != data){
         ice->IssuedCmd = data;
         return ice->fxn.fxnIrShift(ice->linkHandle, data, len);
@@ -67,38 +42,41 @@ uint64_t _IrShift(icepick_t *ice, uint64_t data, uint64_t len){
     return 0x0;
 }
 
-uint64_t _DrShift(icepick_t *ice, uint64_t data, uint64_t len){
+static uint64_t _DrShift(icepick_t *ice, uint64_t data, uint64_t len){
+    if (ice->fxn.fxnDrShift == NULL)
+        return 0x00;
+
     return ice->fxn.fxnDrShift(ice->linkHandle, data, len);
 }
 
-uint32_t __icepick_set_router(icepick_t *ice, uint8_t block, uint8_t reg, uint32_t value){
-    uint32_t ret;
-    _icepick_router_scan_t router = {0};
-
-    router.WrEn = _WRITE_ENABLED;
-    router.blockSel = block;
-    router.regNumber = reg;
-    router.regValue = value;
-
-    _IrShift(ice, ICEPICK_CMD_ROUTER, _CMD_LEN);
-    ret = _DrShift(ice, router._raw, 32);
-
-    return ret;
-}
-
-uint32_t __icepick_get_router(icepick_t *ice, uint8_t block, uint8_t reg){
-    uint32_t ret;
-    _icepick_router_scan_t router = {0};
-
-    router.WrEn = _WRITE_DISABLED;
-    router.blockSel = block;
-    router.regNumber = reg;
-
-    _IrShift(ice, ICEPICK_CMD_ROUTER, _CMD_LEN);
-    ret = _DrShift(ice, router._raw, 32);
-
-    return ret;
-}
+//uint32_t __icepick_set_router(icepick_t *ice, uint8_t block, uint8_t reg, uint32_t value){
+//    uint32_t ret;
+//    _icepick_router_scan_t router = {0};
+//
+//    router.WrEn = _WRITE_ENABLED;
+//    router.blockSel = block;
+//    router.regNumber = reg;
+//    router.regValue = value;
+//
+//    _IrShift(ice, ICEPICK_CMD_ROUTER, _CMD_LEN);
+//    ret = _DrShift(ice, router._raw, 32);
+//
+//    return ret;
+//}
+//
+//uint32_t __icepick_get_router(icepick_t *ice, uint8_t block, uint8_t reg){
+//    uint32_t ret;
+//    _icepick_router_scan_t router = {0};
+//
+//    router.WrEn = _WRITE_DISABLED;
+//    router.blockSel = block;
+//    router.regNumber = reg;
+//
+//    _IrShift(ice, ICEPICK_CMD_ROUTER, _CMD_LEN);
+//    ret = _DrShift(ice, router._raw, 32);
+//
+//    return ret;
+//}
 
 /**
  * Publics
@@ -108,80 +86,142 @@ uint32_t __icepick_get_router(icepick_t *ice, uint8_t block, uint8_t reg){
 void icepick_init(icepick_t *ice){
     if (ice == NULL)
         return;
-    if (ice->fxn.fxnInit == NULL || ice->fxn.fxnDrShift == NULL || ice->fxn.fxnIrShift == NULL)
-        return;
 
-    ice->fxn.fxnInit(ice->linkHandle, CJTAG_MODE_4PIN);
-
-    _IrShift(ice, ice->cmd.idCode, _CMD_LEN);
-    ice->info.DeviceId._raw = _DrShift(ice, 0x0, 32);
-
-    _IrShift(ice, ice->cmd.icePickCode, _CMD_LEN);
-    ice->info.IdCode._raw = _DrShift(ice, 0x0, 32);
-
-    _IrShift(ice, ICEPICK_CMD_CONNECT, _CMD_LEN);
-    _DrShift(ice, _CONNECT_CODE, 8);
+//    _IrShift(ice, ice->cmd.idCode, _CMD_LEN);
+//    ice->info.DeviceId._raw = _DrShift(ice, 0x0, 32);
+//
+//    _IrShift(ice, ice->cmd.icePickCode, _CMD_LEN);
+//    ice->info.IdCode._raw = _DrShift(ice, 0x0, 32);
+//
+//    _IrShift(ice, ICEPICK_CMD_CONNECT, _CMD_LEN);
+//    _DrShift(ice, _CONNECT_CODE, 8);
 }
 
-uint32_t icepick_router(icepick_t *ice){
-    uint32_t ret;
-    _icepick_sdtr_t sdtrSend, sdtrRec;
+//uint32_t icepick_router(icepick_t *ice){
+//    uint32_t ret;
+//    _icepick_sdtr_t sdtrSend, sdtrRec;
+//
+//    if (ice == NULL)
+//        return 0;
+//    if (ice->fxn.fxnInit == NULL || ice->fxn.fxnDrShift == NULL || ice->fxn.fxnIrShift == NULL)
+//        return 0;
+//
+//    sdtrSend._raw = 0x1000000;
+//    sdtrRec._raw = __icepick_get_router(ice, 0, 0x1);
+//    sdtrRec._raw = __icepick_get_router(ice, 0, 0x1);
+//
+//    sdtrSend._raw = 0x21000;
+//    sdtrRec._raw = __icepick_set_router(ice, 0, 0x1, sdtrSend._raw);
+//    sdtrRec._raw = __icepick_get_router(ice, 0, 0x1);
+//
+//    _IrShift(ice, ICEPICK_CMD_BYPASS, _CMD_LEN);
+//
+//    sdtrSend._raw = 0x0;
+//    sdtrRec._raw = __icepick_get_router(ice, 2, 0x00);
+//    sdtrRec._raw = __icepick_get_router(ice, 2, 0x00);
+//
+//    sdtrSend._raw = 0x12008;
+//    sdtrRec._raw = __icepick_set_router(ice, 2, 0x0, sdtrSend._raw );
+//    sdtrRec._raw = __icepick_set_router(ice, 2, 0x0, sdtrSend._raw );
+//
+//    sdtrSend._raw = 0x0;
+//    sdtrRec._raw = __icepick_get_router(ice, 2, 0x00);
+//    sdtrRec._raw = __icepick_get_router(ice, 2, 0x00);
+//
+//
+//    sdtrSend._raw = 0x2108;
+//    sdtrRec._raw = __icepick_set_router(ice, 2, 0x00, sdtrSend._raw);
+//
+//    sdtrSend._raw = 0x0;
+//    sdtrRec._raw = __icepick_get_router(ice, 2, 0x00);
+//
+//    _IrShift(ice, ICEPICK_CMD_BYPASS, _CMD_LEN);
+//
+//    _IrShift(ice, 0x01, 1);
+//    _DrShift(ice, 0x80, 8);
+//
+//    _IrShift(ice, 0x030020, 8*3);
+//    ret = _DrShift(ice, 0x20000001, 8*3);
+//    ret = _DrShift(ice, 0x20000001, 33);
+//
+//    return sdtrRec._raw;
+//}
+//
+//uint32_t icepick_bypass(icepick_t *ice, uint32_t data, uint32_t len){
+//    uint32_t ret;
+//    if (ice == NULL)
+//        return 0;
+//    if (ice->fxn.fxnInit == NULL || ice->fxn.fxnDrShift == NULL || ice->fxn.fxnIrShift == NULL)
+//        return 0;
+//
+//    _IrShift(ice, ICEPICK_CMD_BYPASS, _CMD_LEN);
+//    ret = (_DrShift(ice, data, len))>>1;
+//
+//    return ret;
+//}
 
+uint32_t icepick_issueCMD(icepick_t *ice, icepick_cmd_e cmd, uint32_t *dataO, uint32_t *lenO){
     if (ice == NULL)
-        return 0;
-    if (ice->fxn.fxnInit == NULL || ice->fxn.fxnDrShift == NULL || ice->fxn.fxnIrShift == NULL)
-        return 0;
+        return 1;
 
-    sdtrSend._raw = 0x1000000;
-    sdtrRec._raw = __icepick_get_router(ice, 0, 0x1);
-    sdtrRec._raw = __icepick_get_router(ice, 0, 0x1);
+    if (dataO != NULL)
+        *dataO = cmd;
+    if (lenO != NULL)
+        *lenO = _CMD_LEN;
+    return _IrShift(ice, ICEPICK_CMD_BYPASS, _CMD_LEN);
+}
 
-    sdtrSend._raw = 0x21000;
-    sdtrRec._raw = __icepick_set_router(ice, 0, 0x1, sdtrSend._raw);
-    sdtrRec._raw = __icepick_get_router(ice, 0, 0x1);
+uint32_t icepick_router(icepick_t *ice, icepick_router_scan_t params, uint32_t *dataO, uint32_t *lenO){
+    if (ice == NULL)
+        return 1;
 
-    _IrShift(ice, ICEPICK_CMD_BYPASS, _CMD_LEN);
+    if (dataO != NULL)
+        *dataO = params._raw;
+    if (lenO != NULL)
+        *lenO = 32;
+    return _DrShift(ice, params._raw, 32);
+}
 
-    sdtrSend._raw = 0x0;
-    sdtrRec._raw = __icepick_get_router(ice, 2, 0x00);
-    sdtrRec._raw = __icepick_get_router(ice, 2, 0x00);
+uint32_t icepick_connect(icepick_t *ice, uint32_t *dataO, uint32_t *lenO){
+    if (ice == NULL)
+        return 1;
 
-    sdtrSend._raw = 0x12008;
-    sdtrRec._raw = __icepick_set_router(ice, 2, 0x0, sdtrSend._raw );
-    sdtrRec._raw = __icepick_set_router(ice, 2, 0x0, sdtrSend._raw );
-
-    sdtrSend._raw = 0x0;
-    sdtrRec._raw = __icepick_get_router(ice, 2, 0x00);
-    sdtrRec._raw = __icepick_get_router(ice, 2, 0x00);
-
-
-    sdtrSend._raw = 0x2108;
-    sdtrRec._raw = __icepick_set_router(ice, 2, 0x00, sdtrSend._raw);
-
-    sdtrSend._raw = 0x0;
-    sdtrRec._raw = __icepick_get_router(ice, 2, 0x00);
-
-    _IrShift(ice, ICEPICK_CMD_BYPASS, _CMD_LEN);
-
-    _IrShift(ice, 0x01, 1);
-    _DrShift(ice, 0x80, 8);
-
-    _IrShift(ice, 0x030020, 8*3);
-    ret = _DrShift(ice, 0x20000001, 8*3);
-    ret = _DrShift(ice, 0x20000001, 33);
-
-    return sdtrRec._raw;
+    if (dataO != NULL)
+        *dataO = _CONNECT_CODE;
+    if (lenO != NULL)
+        *lenO = 8;
+    return _DrShift(ice, _CONNECT_CODE, 8);
 }
 
 uint32_t icepick_bypass(icepick_t *ice, uint32_t data, uint32_t len){
-    uint32_t ret;
     if (ice == NULL)
-        return 0;
-    if (ice->fxn.fxnInit == NULL || ice->fxn.fxnDrShift == NULL || ice->fxn.fxnIrShift == NULL)
-        return 0;
+        return 1;
 
-    _IrShift(ice, ICEPICK_CMD_BYPASS, _CMD_LEN);
-    ret = (_DrShift(ice, data, len))>>1;
+    return _DrShift(ice, data, len);
+}
 
-    return ret;
+uint32_t icepick_idcode(icepick_t *ice, uint32_t *idcode){
+    uint32_t d;
+
+    if (ice == NULL)
+        return 1;
+
+    d = _DrShift(ice, 0x00, 32);
+    if (idcode != NULL)
+        *idcode = d;
+
+    return d;
+}
+
+uint32_t icepick_icecode(icepick_t *ice, uint32_t *idcode){
+    uint32_t d;
+
+    if (ice == NULL)
+        return 1;
+
+    d = _DrShift(ice, 0x0, 32);
+    if (idcode != NULL)
+        *idcode = d;
+
+    return d;
 }

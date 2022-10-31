@@ -20,7 +20,7 @@
 
 #define _NOP()                  asm(" nop")
 
-#define   NOPS                  { _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); }
+#define   NOPS                  { _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); _NOP(); }
 
 
 #define _ir_shift_enter_pat     0x3
@@ -625,7 +625,7 @@ uint64_t cjtag_ir_shift(cjtag_t *cjtag, uint64_t d, uint8_t l){
     return ret;
 }
 
-uint64_t cjtag_dr_shift(cjtag_t *cjtag, uint64_t d, uint8_t l){
+uint64_t cjtag_dr_shift(cjtag_t *cjtag, uint64_t d, uint8_t l, uint8_t endInPause){
     uint8_t i;
     uint64_t ret;
 
@@ -641,7 +641,7 @@ uint64_t cjtag_dr_shift(cjtag_t *cjtag, uint64_t d, uint8_t l){
         break;
     case CJTAG_PAUSE_DR:
     case CJTAG_PAUSE_IR:
-        cjtag_writeOscan(cjtag, 0x07, _LOW, 5);
+        cjtag_writeOscan(cjtag, 0x01, _LOW, 2);
         break;
     }
 
@@ -662,7 +662,7 @@ uint64_t cjtag_dr_shift(cjtag_t *cjtag, uint64_t d, uint8_t l){
     else{
         // Go to Pause DR
 //        cjtag_writeOscan(cjtag, 0x0B, _LOW, 5);
-        cjtag_writeOscan(cjtag, 0x1, _LOW, 2);
+        cjtag_writeOscan(cjtag, 0x0, _LOW, 2);
     }
 
     return ret;
